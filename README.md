@@ -145,7 +145,8 @@ It is up to facility layer to check the conformance of the incoming message with
 The function __*FitSec_Decrypt*__ will be implemented soon to be able to use encrypted messages.
 
 ## Limitations ##
-- The library doesn't support encryption for the moment.
+- The library doesn't support implicit certificate validation.
+- The library doesn't support the Butterfly Key Expansion mechanism, as described in ETSI TS 102 941 v2.x.x
 
 ## Author ##
-The library was created in 2015-2016 by Denis Filatov (danya.filatov()gmail.com) in order to validate the ETSI's ITS security test suite. The library is free for non-commercial and not-for-profit usage, otherwise please contact the author.
+The library was crated and supported since 2015 by Denis Filatov (denis.filatov()fillabs.com) as a validation tool for the ETSI's ITS security test suite. The library is NOT a free product. Please contact author for the license.
