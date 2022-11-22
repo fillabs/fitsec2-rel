@@ -1,0 +1,3 @@
+[submodule "cshared"]
+	path = cshared
+	url = https://github.com/fillabs/cshared.git

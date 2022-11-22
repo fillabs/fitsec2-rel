@@ -2,18 +2,20 @@
 
 ## Overview ##
 
-The library provides the security envelop librariy to be used for the Intelligent Transport Systems communication.
-Rhis communication can be based on the GeoNetworking protocol
+The FitSec library provides the security envelop to be used for the Intelligent Transport Systems communication.
+The library can be used with any kind of communication protocol, particularly with the GeoNetworking as described in
 [ETSI EN 302 636-4-1](http://www.etsi.org/deliver/etsi_en/302600_302699/3026360401/01.02.01_60/en_3026360401v010201p.pdf).
-The library is fully conformed to [ETSI TS 103 097 v1.3.1 and later](http://www.etsi.org/deliver/etsi_ts/103000_103099/103097/01.03.01_60/ts_103097v010301p.pdf)
+
+The library is fully conformed to the [ETSI TS 103 097](http://www.etsi.org/deliver/etsi_ts/103000_103099/103097/01.03.01_60/ts_103097v010301p.pdf) starting from v1.3.1.
 
 The library is written in plain C in cross-platform manner and has been compiled and tested in Linux(gcc) and Windows(mingw32,cygwin and Visual C 13) environments.
+The x86 Linux and Windows binaries provided for testing purposes.
 
-It implements the plugin interface to use various crypto engines. For the moment the following engines are implemented:
+The library implements the plugin interface to use various crypto engines. For the moment the following engines are implemented:
 - [OpenSSL](https://www.openssl.org/)
 - AutoTalk Craton2 HSM engine
 
-Other crypto and hash engines can be implemented using the plugin API at _fitsec_hash_plugin.h_ and _fitsec_ecc_plugin.h_ 
+Other crypto and hash engines can be implemented using the plugin API at [fitsec_hash_plugin.h](plugins/fitsec_hash_plugin.h) and [fitsec_ecc_plugin.h](plugins/fitsec_ecc_plugin.h) 
 
 ## User API ##
 The main API is defined in the [_fitsec.h_](fitsec.h) header.

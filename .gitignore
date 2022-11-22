@@ -1,0 +1,7 @@
+build
+.vscode
+*.vcxproj.user
+*.vcxproj.filters
+log
+craton2
+install
