@@ -47,11 +47,11 @@ extern "C" {
 #endif
 
     enum {
-        FSCERT_LOADED  = 0x01,
-        FSCERT_INVALID = 0x02,
-        FSCERT_TRUSTED = 0x04,
-        FSCERT_LOCAL   = 0x08,
-        FSCERT_REVOKED = 0x10
+        FSCERT_LOADED   = 0x01,
+        FSCERT_INVALID  = 0x02,
+        FSCERT_TRUSTED  = 0x04,
+        FSCERT_LOCAL    = 0x08,
+        FSCERT_REVOKED  = 0x10,
     };
 
     FITSEC_EXPORT uint32_t           FSCertificate_GetState(const FSCertificate* c);

@@ -37,6 +37,8 @@ extern "C" {
         FS_NISTP256,
         FS_BRAINPOOLP256R1,
         FS_BRAINPOOLP384R1,
+        FS_NISTP384,
+        FS_SM2,
 
         FSCryptCurveId_Max
     }FSCryptCurveName;
@@ -70,8 +72,15 @@ extern "C" {
         void           * k; // for plugin usage
     };
 
-    inline size_t FSKey_FieldSize(FSCryptCurveName curve) {
-        return (curve > FS_BRAINPOOLP256R1) ? 48 : 32;
+    inline static size_t FSKey_FieldSize(FSCryptCurveName curve) {
+        switch(curve){
+        case FS_BRAINPOOLP384R1:
+        case FS_NISTP384:
+            return 48;
+        default:
+            break;
+        }
+        return 32;
     }
 
     FITSEC_EXPORT void FSEccEngine_Init(FSEccEngine* engine, const char * params);
@@ -89,6 +98,10 @@ extern "C" {
     FITSEC_EXPORT size_t          FSKey_Derive          (FSEccEngine* e, const FSPublicKey* k, const FSPrivateKey* eph,
                                                          const void* salt, size_t salt_len,
                                                          void* digest, size_t digest_len);
+
+    FITSEC_EXPORT bool            FSKey_ReconstructPublic(FSEccEngine* e, const FSPublicKey* rv, 
+                                                         const FSPublicKey* ca, const unsigned char * hash);
+
     struct FSSignature {
         FSCryptCurveName    curve;
         FSEccPoint          point;
