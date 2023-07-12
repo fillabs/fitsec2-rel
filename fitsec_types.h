@@ -71,16 +71,6 @@ extern "C" {
     typedef struct FitSec FitSec;
     typedef struct FSCertificate FSCertificate;
     typedef struct FSMessageInfo FSMessageInfo;
-    //typedef struct FitSecKey FitSecKey;
-    //typedef struct FitSecSignature FitSecSignature;
-
-    typedef enum {
-        FS_SHA256,
-        FS_SHA384,
-        FS_SM3,
-
-        FSCryptHashAlgorithm_Max
-    }FSCryptHashAlgorithm;
 
 #ifdef __cplusplus
 }

@@ -37,7 +37,6 @@
 #define FS_PERMISSIONS_MAX 16 //max 16 AID permissions per certificate (FitSec limit)
 
 #include "fitsec_types.h"
-#include "fitsec_crypt.h"
 #include "fitsec_cert.h"
 
 #ifdef __cplusplus
@@ -168,6 +167,7 @@ extern "C" {
     /** Initialize the config structure with default values */
     FITSEC_EXPORT void  FitSecConfig_InitDefault(FitSecConfig * cfg);
     FITSEC_EXPORT const FitSecAppProfile* FitSecConfig_FindProfile(const FitSecConfig* cfg, FSItsAid aid);
+    FITSEC_EXPORT const FitSecConfig* FitSec_GetConfig(const FitSec * e);
     /** Create and initialize engine */
     FITSEC_EXPORT FitSec * FitSec_New(const FitSecConfig * config, const char * const name);
     FITSEC_EXPORT const char * FitSec_Name(const FitSec * e);

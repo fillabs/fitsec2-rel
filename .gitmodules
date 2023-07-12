@@ -1,3 +1,6 @@
 [submodule "cshared"]
 	path = cshared
 	url = https://github.com/fillabs/cshared.git
+[submodule "fscrypt"]
+	path = fscrypt
+	url = https://github.com/fillabs/fscrypt.git

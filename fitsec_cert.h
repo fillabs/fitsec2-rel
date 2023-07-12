@@ -22,6 +22,7 @@ without explicit permissions of the author.
 #endif
 
 #include "fitsec_types.h"
+#include "fscrypt.h"
 
 #ifdef __cplusplus
 extern "C" {
