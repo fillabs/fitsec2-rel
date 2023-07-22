@@ -22,7 +22,6 @@ by simple request to the author.
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "fitsec.h"
-#include "plugins/fitsec_ecc_plugin.h"
 #include "cmem.h"
 
 #include <stdio.h>
@@ -337,14 +336,14 @@ const uint8_t T6[16] = {
     0xC3, 0x06, 0x31, 0xAB, 0x60, 0xD1, 0x16, 0xA2, 0xCA, 0x4F, 0xBE, 0xC9, 0x7C, 0x71, 0x18, 0x24 };
 
 typedef struct {
-    const uint8_t* v;  // Sender’s ephemeral private key
-    const uint8_t* Vx; // Sender’s ephemeral public key X
-    const uint8_t* Vy; // Sender’s ephemeral public key Y
+    const uint8_t* v;  // Senderï¿½s ephemeral private key
+    const uint8_t* Vx; // Senderï¿½s ephemeral public key X
+    const uint8_t* Vy; // Senderï¿½s ephemeral public key Y
     const uint8_t* k;  // AES key to be encrypted [16 bytes]
     const uint8_t* p1; // Hash(RecipientInfo) [16 bytes]
-    const uint8_t* r;  // Recipient’s private key (decryption input)
-    const uint8_t* Rx; // Recipient’s public key X
-    const uint8_t* Ry; // Recipient’s public key Y
+    const uint8_t* r;  // Recipientï¿½s private key (decryption input)
+    const uint8_t* Rx; // Recipientï¿½s public key X
+    const uint8_t* Ry; // Recipientï¿½s public key Y
     const uint8_t* C;  // Encrypted (wrapped) AES key
     const uint8_t* T;  // Authentication tag
 }EciesVector;
@@ -445,9 +444,9 @@ struct {
 int main(int argc, char** argv)
 {
     int ret = 0;
-    FSEccEngine* e = FitSec_FindEccEngine("openssl");
+    FSCrypt* e = FSCrypt_FindEngine("openssl");
     if (!e) return -1;
-    FSEccEngine_Init(e, NULL);
+    FSCrypt_InitEngine(e, NULL);
     
     uint8_t out[256];
 
@@ -473,7 +472,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < sizeof(_SymmEncVectors) / sizeof(_SymmEncVectors[0]); i++) {
         const SymmEncVector* v = &_SymmEncVectors[i];
         printf("%d: Decrypt %d bytes: ", i, (int)v->ct_len);
-        size_t l = e->SymmOps->Decrypt(e, FS_AES_128_CCM, v->key, v->nonce, v->ct, v->ct_len, out, sizeof(out));
+        size_t l = FSSymm_Decrypt(e, FS_AES_128_CCM, v->key, v->nonce, v->ct, v->ct_len, out, sizeof(out));
         if (l != v->pt_len) {
             printf("\tERROR: decrypted length is %d instead of %d\n", (int)l, (int)v->pt_len);
             ret++;
@@ -510,7 +509,7 @@ int main(int argc, char** argv)
 
         printf("%d: Check Eph key:", i);
         FSPrivateKey* eph = FSKey_ImportPrivate(e, FS_NISTP256, v->v, 32);
-        FSKey_CalculatePublic(e, &pub, FS_NISTP256, eph);
+        FSKey_CalculatePublic(e, eph, &pub);
         if (memcmp(pub.point.x, v->Vx, 32)) {
             printf("\tX coordinate mismatch;\n");
             ret++;
@@ -523,7 +522,7 @@ int main(int argc, char** argv)
 
         printf("%d: Check Receiver key:", i);
         FSPrivateKey* rcv = FSKey_ImportPrivate(e, FS_NISTP256, v->r, 32);
-        FSKey_CalculatePublic(e, &pub, FS_NISTP256, rcv);
+        FSKey_CalculatePublic(e, rcv, &pub);
         if (memcmp(pub.point.x, v->Rx, 32)) {
             printf("\tX coordinate mismatch;\n");
             ret++;
@@ -538,7 +537,7 @@ int main(int argc, char** argv)
 
         printf("%d: Derive AES (send):", i);
         FSKey_InitPublic(&pub, FS_NISTP256, FS_UNCOMPRESSED, &v->Rx[0], &v->Ry[0]);
-        e->KeyOps->Derive(e, &pub, eph, v->p1, 32, out, 64);
+        FSKey_Derive(e, &pub, eph, v->p1, 32, out, 64);
         _xor_sym_key_aligned(out+64, out, v->k, 16);
         if (0 != memcmp(out+64, v->C, 16)) {
             printf("\tERROR: Encrypted AES mismatch\n");
@@ -552,7 +551,7 @@ int main(int argc, char** argv)
  //       printf("Send SS:\n"); hexdump(stdout, out, 64); fputc('\n', stdout);
 
         printf("%d: MAC:", i);
-        e->MACOps->mac(e, 0, v->C, 16, out + 16, 32, out+64);
+        FSCrypt_MAC(e, FS_HMAC256, v->C, 16, out + 16, 32, out+64);
         if (0 != memcmp(out+64, v->T, 16)) {
             printf("\t\t\tERROR: MAC mismatch\n");
             ret++;
@@ -565,7 +564,7 @@ int main(int argc, char** argv)
         // create new eph key
         FSKey_CleanPublic(e, &pub);
         FSKey_InitPublic(&pub, FS_NISTP256, FS_UNCOMPRESSED, &v->Vx[0], &v->Vy[0]);
-        e->KeyOps->Derive(e, &pub, rcv, v->p1, 32, out+64, 64);
+        FSKey_Derive(e, &pub, rcv, v->p1, 32, out+64, 64);
         if (0 != memcmp(out, out + 64, 64)) {
             printf("\tERROR: Send and Recv SS mismatch\n");
             ret++;

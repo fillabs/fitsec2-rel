@@ -41,17 +41,18 @@ int main(int argc, char** argv)
 	FitSecConfig_InitDefault(&cfg);
 
 	e = FitSec_New(&cfg, "1");
+	
+	for(int n=0; n<2; n++){
+		if(argc > 1){
+			for (int i = 1; i < argc; i++) {
+				loadCertificates(e, argv[i]);
+			}
+		}else
+			loadCertificates(e, storage1);
+		FitSec_RelinkCertificates(e);
+		FitSec_Clean(e, 1);
+	}
 
-	if(argc > 1){
-		for (int i = 1; i < argc; i++) {
-			loadCertificates(e, argv[i]);
-		}
-	}else
-		loadCertificates(e, storage1);
-
-	FitSec_RelinkCertificates(e);
-
-	FitSec_Clean(e, 1);
 	FitSec_Free(e);
 	return 0;
 }

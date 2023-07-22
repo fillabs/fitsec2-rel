@@ -170,22 +170,24 @@ static void  test_encrypt(FitSec* e1, FitSec* e2) {
         ms.payload[i] = (char)i;
     }
     ms.payloadSize = 256;
-    FitSec_FinalizeEncryptedMessage(e1, &ms);
-
-    size_t len = FitSec_ParseMessage(e2, &ms);
-    if(len > 0){
-        FitSec_DecryptMessage(e2, &ms);
-        if (ms.payloadSize != 256) {
-            fprintf(stderr, "Payload size mismatch\n");
-        }
-        else {
-            for (int i = 0; i < ms.payloadSize; i++) {
-                if (ms.payload[i] != (char)i) {
-                    fprintf(stderr, "Error on payload position %d", i);
-                    break;
+    if(0 == FitSec_FinalizeEncryptedMessage(e1, &ms)){
+        fprintf(stderr, "Encryption error: %s\n", FitSec_ErrorMessage(ms.status));
+    }else{
+        size_t len = FitSec_ParseMessage(e2, &ms);
+        if(len > 0){
+            FitSec_DecryptMessage(e2, &ms);
+            if (ms.payloadSize != 256) {
+                fprintf(stderr, "Payload size mismatch\n");
+            }
+            else {
+                for (int i = 0; i < ms.payloadSize; i++) {
+                    if (ms.payload[i] != (char)i) {
+                        fprintf(stderr, "Error on payload position %d\n", i);
+                        break;
+                    }
                 }
             }
         }
+        fprintf(stderr, "Done!\n");
     }
-    fprintf(stderr, "Done!\n");
 }

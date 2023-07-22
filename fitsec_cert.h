@@ -37,14 +37,11 @@ extern "C" {
 #   define FSCertificate_Retain(C) FSCertificate_Retain_D(C,__FILE__,__LINE__)
     FITSEC_EXPORT FSCertificate* FSCertificate_Assign_D(FSCertificate** p, FSCertificate* c, const char* F, int L);
 #   define FSCertificate_Assign(C,S) FSCertificate_Assign_D(C,S,__FILE__,__LINE__)
-    FITSEC_EXPORT void           FSCertificate_Remove_D(FSCertificate* c, const char* F, int L);
-#   define FSCertificate_Remove(C) FSCertificate_Remove_D(C,__FILE__,__LINE__)
 #else
     FITSEC_EXPORT FSCertificate* FSCertificate_New(FitSec* e);
     FITSEC_EXPORT void           FSCertificate_Release(FSCertificate* c);
     FITSEC_EXPORT FSCertificate* FSCertificate_Retain(FSCertificate* c);
     FITSEC_EXPORT FSCertificate* FSCertificate_Assign(FSCertificate** p, FSCertificate* c);
-    FITSEC_EXPORT void           FSCertificate_Remove(FSCertificate* c);
 #endif
 
     enum {
@@ -62,10 +59,6 @@ extern "C" {
 
     const FSPublicKey* FSCertificate_GetVerificationKey(const FSCertificate* c);
     const FSPublicKey* FSCertificate_GetEncryptionKey(const FSCertificate* c);
-
-    // Reconstruct certificate chain
-    // Return digest of unknown certificate or 0 if all signers are present
-    FITSEC_EXPORT FSHashedId8    FSCertificate_Relink(FSCertificate* c);
 
     // load certificate from the buffer
     // does not perform any validation

@@ -219,6 +219,14 @@ extern "C" {
     */
     FITSEC_EXPORT bool FitSec_RevokeCertificateId(FitSec* e, FSHashedId8 digest);
 
+    /** Revalidate all certificate chains after the revocation.
+     * 
+     * This function must be called after the set of revocations. It will revalidate all installed and 
+     * received certificates.
+     * */
+    FITSEC_EXPORT void FitSec_RevalidateCertificates(FitSec* e);
+
+
     /** Return certificate digest
         @return the HashedId8 of the certificate
     */
@@ -243,9 +251,6 @@ extern "C" {
         @return the certificate state
     */
     FITSEC_EXPORT uint32_t              FitSec_CertificateState(const FSCertificate* c);
-
-    /** Find certificate with the given digest */ 
-    FITSEC_EXPORT const FSCertificate * FitSec_CertificateFind(FitSec * e, FSHashedId8);
 
     FITSEC_EXPORT const FSCertificate *  FitSec_CurrentCertificate(FitSec* e, FSItsAid aid);
 

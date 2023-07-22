@@ -308,6 +308,9 @@ int main(int argc, char** argv)
     FitSec_Free(e[0]);
     FitSec_Free(e[1]);
     if (e[2]) FitSec_Free(e[2]);
+    if(out != stdout){
+        fclose(out);
+    }
     return 0;
 }
 

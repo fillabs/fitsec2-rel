@@ -151,11 +151,13 @@ int loadCertificates(FitSec * e, const pchar_t * _path)
 				struct dirent * de;
 				d = opendir(path);
 				if(d){
+					path[plen++] = '/';
 					while(NULL != (de = readdir(d))){
 						pchar_t * ext = pchar_rchr(de->d_name, '.');
 						if(ext && 0 == strcmp(ext, ".oer")){
 							pchar_cpy(path + plen, de->d_name);
 							if (0 <= _load_certificate(e, path, path + plen)){
+								errno = 0;
 								ccount++;
 							}
 						}
