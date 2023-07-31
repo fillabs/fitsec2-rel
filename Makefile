@@ -1,9 +1,16 @@
+export PROJECTROOT    ?= .
+export BUILDROOT      ?= $(PROJECTROOT)/build
+export CSHAREDDIR     ?= $(PROJECTROOT)/cshared
+export FSCRYPTDIR     ?= $(PROJECTROOT)/fscrypt
+
 all: install
 clean:
 	-make -C lib clean
+ifeq (.,$(PROJECTROOT))
 	-make -C tests clean
 	-make -C cshared clean
 	-make -C fscrypt clean
+endif
 
 tests: install FORCE
 	make -C $@ all

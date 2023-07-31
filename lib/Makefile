@@ -1,8 +1,8 @@
 PROJECTROOT  ?= ..
 BUILDROOT    ?= $(PROJECTROOT)/build
-PROJECT      = fitsec2
-DEBUG        = yes
-CSHAREDDIR   = $(PROJECTROOT)/cshared
+PROJECT      ?= fitsec2
+DEBUG        ?= yes
+CSHAREDDIR   ?= $(PROJECTROOT)/cshared
 
 ifeq ($(ARCH),)
  ARCH = $(shell gcc -dumpmachine)
