@@ -157,6 +157,7 @@ extern "C" {
         unsigned int                maxReceivedPoolSize; // maximum size of received AT certificate pool
         unsigned int                maxReceivedLifeTime; // maximum life time of received certificate
         unsigned int                purgePeriod;         // period in seconds when certificate pools must be purged. Set to 0 to do not purge
+        unsigned int                encKeyStorageDuration; // time to keep symmetric encryption keys after last usage. Set to 0 to skip PSK.
     } FitSecConfig;
     #define FS_DEFAULT_PROTOCOL_VERSION 3
     #define FS_DEFAULT_RECEIVED_LIFETIME 2
@@ -334,9 +335,14 @@ extern "C" {
         FSCertificate       * cert;               ///< Certificate to be used for signature/encryption
         FSItsAidSsp           ssp;                ///< SSP of the message to be used to select proper certificate 
                                                   ///    or to inform the application about allowed message content
-        uint8_t             * encKey;             ///< Symmetric encryption key
-        uint32_t              flags;              ///< Some internal flags
+        struct {
+            FSSymmAlg         alg;                ///< Symmetric encryption key algorithm
+            uint8_t         * key;                ///< Symmetric encryption key (external memory)
+            FSHashedId8       pskId;              ///< Symmetric encryption key id
+        }encryption;
+
         /// @internal
+        uint32_t              flags;
         void *_ptrs[10];
         /// @endinternal
     };
@@ -360,6 +366,8 @@ extern "C" {
             const char url[1];
         }httpReq;
     };
+
+    FITSEC_EXPORT bool FitSec_CallEventCallback(FitSec * e, void * user, FSEventId event, const FSEventParam * params);
 
     /** Allocate the FSMessageInfo structure and the message buffer  of given size */
     FITSEC_EXPORT FSMessageInfo* FSMessageInfo_Allocate(size_t maxBufSize);
@@ -488,13 +496,39 @@ extern "C" {
      *  payload        | out: the pointer to the output buffer where payload shall be stored.
      *  payloadSize    | out: the maximum size of the payload.
      */
-    FITSEC_EXPORT size_t FitSec_PrepareEncryptedMessage(FitSec * e, FSMessageInfo* m, size_t rCount, const FSHashedId8 * receipients);
+    FITSEC_EXPORT size_t FitSec_PrepareEncryptedMessage(FitSec * e, FSMessageInfo* m);
+
+
+    FITSEC_EXPORT size_t FitSec_AddEncryptedMessageCertificateReceipient(FitSec * e, FSMessageInfo* m, FSHashedId8 receipient);
+    
+    /** Install pre-shared key in the DB
+     *  @param e           [In]      The engine
+     *  @param alg         [In]      The encryption algorythm
+     *  @param curTime     [In]      The current ITS time. (msg generation time / 100000,  for example)
+     *  @param symmKey     [In]      The encryption key. Length depends of algorithm.
+     *  @param digest      [In]      The encryption key digest if the key is already stored in the DB 
+     *  @return            The digest of the key
+     */
+    FITSEC_EXPORT FSHashedId8 FitSec_InstallPreSharedKey(FitSec * e, FSSymmAlg alg, uint32_t curTime, const uint8_t * symmKey, FSHashedId8 digest);
+
+    /** Add pre-shared key as ancrypted message receipient.
+     *  @param e           [In]      The engine
+     *  @param m           [In/Out]  Message Info structure
+     *  @param alg         [In]      The encryption algorythm
+     *  @param symmKey     [In]      The encryption key. Length depends of algorithm.
+     *  @param digest      [In]      The encryption key digest if the key is already stored in the DB 
+     *  @return            message size or 0 for error
+     *
+       symKey == NULL && digest == 0     - Generate new key. Return it in the message body
+       symKey == NULL && digest != 0     - Search for the key in the DB. Error if not found
+       symKey != NULL && digest ignored  - Use symKey. Check it in the DB
+     */
+    FITSEC_EXPORT size_t FitSec_AddEncryptedMessagePSKReceipient(FitSec * e, FSMessageInfo* m,
+                                                                 FSSymmAlg alg, const uint8_t * symmKey, FSHashedId8 digest);
 
     /** Finalize encrypted ITS message envelop
      *  @param e           [In]      The engine
      *  @param m           [In/Out]  Message Info structure
-     *  @param rCount      [In]  The count of receipients
-     *  @param receipients [In] The array of receipients
      *  @return            message size or 0 for error
      *
      *  Description of fields in FSMessageInfo:

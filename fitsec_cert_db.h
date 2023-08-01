@@ -16,6 +16,13 @@ FSCertificate * FSCertDB_Get (FitSec * e, FSCertDBId db, FSHashedId8 digest);
 void            FSCertDB_Del (FitSec * e, FSCertDBId db, FSCertificate * c);
 void            FSCertDB_Clean(FitSec * e, FSCertDBId db);
 void            FSCertDB_Relink(FitSec * e, FSCertDBId db);
+void            FSCertDB_Splay(FSCertificate *c);
 
+#define FSCertDB_ForEach(e,db,c) \
+    for(void * __last_ ## c, *c = _FSCertDB_NextNode_Init(e, db, &__last_ ## c); \
+        c; \
+        c = _FSCertDB_NextNode(c, &__last_ ## c))        
+FSCertificate * _FSCertDB_NextNode_Init(FitSec * e, FSCertDBId db, void ** px);
+FSCertificate * _FSCertDB_NextNode(const FSCertificate * c, void ** px);
 
 #endif

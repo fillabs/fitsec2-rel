@@ -59,10 +59,16 @@ extern "C" {
 
     const FSPublicKey* FSCertificate_GetVerificationKey(const FSCertificate* c);
     const FSPublicKey* FSCertificate_GetEncryptionKey(const FSCertificate* c);
+    bool               FSCertificate_SetEncryptionPrivateKey(FSCertificate * c, FSPrivateKey * key);
+    bool               FSCertificate_SetVerificationPrivateKey(FSCertificate * c, FSPrivateKey * key);
+
+
 
     // load certificate from the buffer
     // does not perform any validation
     FITSEC_EXPORT size_t         FSCertificate_Load(FSCertificate* c, const char* const ptr, size_t len, int* const perror);
+    FN_THROW(RuntimeException)
+    FITSEC_EXPORT void           FSCertificate_Read(FSCertificate * c, const char** const ptr, const char* const end, int error);
 
     // validate the certificate against its signer
     FITSEC_EXPORT bool           FSCertificate_Validate(FSCertificate* c, int * const perror);
@@ -76,9 +82,11 @@ extern "C" {
     FITSEC_EXPORT bool           FSCertificate_IsValidForAppSSP(const FSCertificate* c, const FSItsAidSsp* ssp, int* const perror);
     FITSEC_EXPORT bool           FSCertificate_IsValidFor(const FSCertificate* c, const FSItsAidSsp* ssp, const FSLocation* position, FSTime64 time, int* const perror);
 
-    FITSEC_EXPORT void           FSCertificate_SetCRLParams(FSCertificate* c, FSTime32 thisUpdate, FSTime32 nextUpdate );
+    FITSEC_EXPORT bool           FSCertificate_SetCRLParams(FSCertificate* c, FSTime32 thisUpdate, FSTime32 nextUpdate);
     FITSEC_EXPORT void           FSCertificate_SetDC(FSCertificate* c, const char* url, size_t urllength);
+    FITSEC_EXPORT bool           FSCertificate_GetDC(const FSCertificate* c, char ** pUrl, size_t * plen);
     FITSEC_EXPORT bool           FSCertificate_DeleteDC(FSCertificate* c, const char* url, size_t urllength);
+    FITSEC_EXPORT bool           FSCertificate_SelectNextDC(FSCertificate* c);
 
 #ifdef __cplusplus
 }

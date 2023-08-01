@@ -40,7 +40,10 @@ extern "C" {
 	#endif
 
 	FITSEC_EXPORT uint32_t timeval2itstime32(const struct timeval * tv);    
-	FITSEC_EXPORT uint64_t timeval2itstime64(const struct timeval * tv);    
+	FITSEC_EXPORT uint64_t timeval2itstime64(const struct timeval * tv);
+	static inline uint32_t time32from64(uint64_t t){
+		return (uint32_t)(t/100000);
+	}
 
 	FITSEC_EXPORT const char * stritsdate32(uint32_t t);
 	FITSEC_EXPORT const char * stritsdate64(uint64_t t);

@@ -33,8 +33,20 @@ extern "C" {
     typedef uint32_t FSItsAid;
     typedef uint64_t FSHashedId8;
     typedef uint32_t FSHashedId3;
+
+    static inline FSHashedId3 HashedId8toId3(FSHashedId8 id8) {
+        return ((FSHashedId3*)&id8)[1]>>8;
+    }
+    static inline FSHashedId8 toHashedId8(const uint8_t * buf) {
+            return *(FSHashedId8*)(buf);
+	}
+    FSHashedId3 toHashedId3(const uint8_t * buf);
+
     typedef uint64_t FSTime64;
     typedef uint32_t FSTime32;
+    static inline FSTime32 FSTime32from64(FSTime32 t){
+		return (uint32_t)(t/100000);
+	}
 
     typedef struct FSLocation {
         int32_t latitude;

@@ -147,6 +147,53 @@ int main(int argc, char** argv)
     return 0;
 }
 
+static size_t _fill_payload(char* m, size_t len)
+{
+    for (size_t i = 0; i < len; i++) {
+        m[i] = (char)(i & 0xFF);
+    }
+    return len;
+}
+static bool _check_payload(const char* m, size_t len)
+{
+    for (size_t i = 0; i < len; i++) {
+        if (m[i] != (char)(i&0xFF)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool _sendAndRcv(FitSec * es, FitSec *er, FSMessageInfo * m)
+{
+    m->payloadSize = _fill_payload(m->payload, 256);
+    if(0 == FitSec_FinalizeEncryptedMessage(es, m)){
+        fprintf(stderr, "%s Encryption error: %s\n", FitSec_Name(es), FitSec_ErrorMessage(m->status));
+        return false;
+    }
+    memset(&m->encryption, 0, sizeof(m->encryption));
+
+    size_t len = FitSec_ParseMessage(er, m);
+    if(len <= 0){
+        fprintf(stderr, "%s Parse error: %s\n", FitSec_Name(er), FitSec_ErrorMessage(m->status));
+        return false;
+    }
+    if(0 == FitSec_DecryptMessage(er, m)){
+        fprintf(stderr, "%s Decrypt error: %s\n", FitSec_Name(er), FitSec_ErrorMessage(m->status));
+        return false;
+
+    }
+    if (m->payloadSize != 256) {
+        fprintf(stderr, "%s Payload size mismatch\n", FitSec_Name(er));
+        return false;
+    }
+    if(!_check_payload(m->payload, m->payloadSize)){
+        fprintf(stderr, "%s Error on payload \n", FitSec_Name(er));
+        return false;
+    }
+    return true;
+}
+
 static void  test_encrypt(FitSec* e1, FitSec* e2) {
     char buf[1024];
 
@@ -162,32 +209,30 @@ static void  test_encrypt(FitSec* e1, FitSec* e2) {
     ms.payloadType = FS_PAYLOAD_SIGNED;
     ms.generationTime = ((FSTime64)_beginTime) * 1000000;
 
-//    FSHashedId8 tgt1 = FitSec_CertificateDigest(FitSec_CurrentCertificate(e1, ms.ssp.aid));
+ //   FSHashedId8 tgt1 = FitSec_CertificateDigest(FitSec_CurrentCertificate(e1, ms.ssp.aid));
     FSHashedId8 tgt2 = FitSec_CertificateDigest(FitSec_CurrentCertificate(e2, ms.ssp.aid));
 
-    FitSec_PrepareEncryptedMessage(e1, &ms, 1, &tgt2);
-    for (int i = 0; i < 256; i++) {
-        ms.payload[i] = (char)i;
-    }
-    ms.payloadSize = 256;
-    if(0 == FitSec_FinalizeEncryptedMessage(e1, &ms)){
-        fprintf(stderr, "Encryption error: %s\n", FitSec_ErrorMessage(ms.status));
-    }else{
-        size_t len = FitSec_ParseMessage(e2, &ms);
-        if(len > 0){
-            FitSec_DecryptMessage(e2, &ms);
-            if (ms.payloadSize != 256) {
-                fprintf(stderr, "Payload size mismatch\n");
-            }
-            else {
-                for (int i = 0; i < ms.payloadSize; i++) {
-                    if (ms.payload[i] != (char)i) {
-                        fprintf(stderr, "Error on payload position %d\n", i);
-                        break;
-                    }
-                }
-            }
+    uint8_t ekey[17];
+    ekey[0] = 0;
+    memset(ekey, 'a', 16);
+    
+    FitSec_PrepareEncryptedMessage(e1, &ms);
+
+    FSHashedId8 psk = FitSec_InstallPreSharedKey(e1, 0, time32from64(ms.generationTime), &ekey[1], 0);
+    FitSec_InstallPreSharedKey(e2, 0, time32from64(ms.generationTime), &ekey[1], psk);
+
+    FitSec_AddEncryptedMessagePSKReceipient(e1, &ms, FS_AES_128_CCM, NULL, psk);
+//    FitSec_AddEncryptedMessageCertificateReceipient(e1, &ms, tgt2);
+
+    if(_sendAndRcv(e1, e2, &ms)){
+        uint8_t key[16];
+        cmemcpy(key, 16, ms.encryption.key, 16);
+
+        FitSec_PrepareEncryptedMessage(e2, &ms);
+//        FitSec_AddEncryptedMessagePSKReceipient(e2, &ms, FS_AES_128_CCM, key, 0);
+        FitSec_AddEncryptedMessagePSKReceipient(e2, &ms, FS_AES_128_CCM, NULL, psk);
+        if(_sendAndRcv(e2, e1, &ms)){
+            fprintf(stderr, "Done!\n");
         }
-        fprintf(stderr, "Done!\n");
     }
 }
