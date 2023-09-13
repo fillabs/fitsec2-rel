@@ -63,7 +63,8 @@ static copt_t options [] = {
     { NULL, NULL, COPT_END, NULL, NULL }
 };
 
-int loadCertificates(FitSec * e, const pchar_t * _path);
+int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path);
+int strpdate(const char* s, struct tm* t);                // defined in utils.c
 
 static char _defaultPayload[] = "1234567890";
 
@@ -95,7 +96,7 @@ int main(int argc, char** argv)
 
     e = FitSec_New(&cfg, "1");
 
-    if (0 >= loadCertificates(e, _storage)) {
+    if (0 >= loadCertificates(e, _curTime, _storage)) {
         return -1;
     }
 
@@ -107,8 +108,8 @@ int main(int argc, char** argv)
     // check preparation time
     struct timeval beg, end;
     size_t len;
-    m.ssp.aid = 36;                    // CAM 
-    m.ssp.sspData.bits.version = 1;    // version is required. All SSP bits are set to zero. No special container
+    m.sign.ssp.aid = 36;                    // CAM 
+    m.sign.ssp.sspData.bits.version = 1;    // version is required. All SSP bits are set to zero. No special container
     m.payloadType = FS_PAYLOAD_SIGNED; // can be skipped. hardcoded for CAM  
     m.message = buf;
     m.generationTime = _curTime;
@@ -116,14 +117,14 @@ int main(int argc, char** argv)
     gettimeofday(&beg, NULL);
     for (unsigned int i = 0; i < _msg_count; i++) {
         m.messageSize = sizeof(buf);
-        m.signerType = FS_SI_AUTO; // reset
+        m.sign.signerType = FS_SI_AUTO; // reset
         m.generationTime = _curTime + (FSTime64)(1000000.0 * i / _rate);
         len = FitSec_PrepareSignedMessage(e, &m);
         if (len == 0) {
             fprintf(stderr, "SEND %s %2d:\t ERROR: 0x%08X %s\n", FitSec_Name(e), i, m.status, FitSec_ErrorMessage(m.status));
             continue;
         }
-        if (m.cert == NULL) {
+        if (m.sign.cert == NULL) {
             fprintf(stderr, "SEND %s %2u:\t ERROR: signing certificate not found\n", FitSec_Name(e), i);
             continue;
         }
@@ -131,7 +132,7 @@ int main(int argc, char** argv)
     gettimeofday(&end, NULL);
     timeval_subtract(&end, &end, &beg);
     duration = ((uint64_t)end.tv_sec) * 1000000 + end.tv_usec;
-    fprintf(stderr, "message encoding time %llu microsec for %u messages\n", duration/ _msg_count, _msg_count);
+    fprintf(stderr, "message encoding time %"PRIu64" microsec for %u messages\n", duration/ _msg_count, _msg_count);
 
     m.payloadSize = sizeof(_defaultPayload);
     memcpy(m.payload, _defaultPayload, m.payloadSize);
@@ -146,7 +147,7 @@ int main(int argc, char** argv)
     gettimeofday(&end, NULL);
     timeval_subtract(&end, &end, &beg);
     duration = ((uint64_t)end.tv_sec) * 1000000 + end.tv_usec;
-    fprintf(stderr, "message signing time %llu microsec for %u messages\n", duration/ _msg_count, _msg_count);
+    fprintf(stderr, "message signing time %"PRIu64" microsec for %u messages\n", duration/ _msg_count, _msg_count);
 
     gettimeofday(&beg, NULL);
     for (unsigned int i = 0; i < _msg_count; i++) {
@@ -160,7 +161,7 @@ int main(int argc, char** argv)
     gettimeofday(&end, NULL);
     timeval_subtract(&end, &end, &beg);
     duration = ((uint64_t)end.tv_sec) * 1000000 + end.tv_usec;
-    fprintf(stderr, "message parsing time %llu microsec for %u messages\n", duration/ _msg_count, _msg_count);
+    fprintf(stderr, "message parsing time %" PRIu64 " microsec for %u messages\n", duration/ _msg_count, _msg_count);
 
     gettimeofday(&beg, NULL);
     for (unsigned int i = 0; i < _msg_count; i++) {
@@ -173,7 +174,7 @@ int main(int argc, char** argv)
     gettimeofday(&end, NULL);
     timeval_subtract(&end, &end, &beg);
     duration = ((uint64_t)end.tv_sec) * 1000000 + end.tv_usec;
-    fprintf(stderr, "message validation time %llu microsec for %u messages\n", duration/_msg_count, _msg_count);
+    fprintf(stderr, "message validation time %" PRIu64 " microsec for %u messages\n", duration/_msg_count, _msg_count);
     
     FitSec_Free(e);
 

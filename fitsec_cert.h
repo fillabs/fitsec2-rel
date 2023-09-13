@@ -24,6 +24,8 @@ without explicit permissions of the author.
 #include "fitsec_types.h"
 #include "fscrypt.h"
 
+#define MAX_AID_COUNT  16  // maximum 16 AID/SSP items per certificate (FitSec limitation)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -44,25 +46,25 @@ extern "C" {
     FITSEC_EXPORT FSCertificate* FSCertificate_Assign(FSCertificate** p, FSCertificate* c);
 #endif
 
-    enum {
+    typedef enum {
         FSCERT_LOADED   = 0x01,
         FSCERT_INVALID  = 0x02,
         FSCERT_TRUSTED  = 0x04,
-        FSCERT_LOCAL    = 0x08,
+    //    FSCERT_LOCAL    = 0x08,
         FSCERT_REVOKED  = 0x10,
-    };
+    }FSCertificateState;
 
     FITSEC_EXPORT uint32_t           FSCertificate_GetState(const FSCertificate* c);
     FITSEC_EXPORT void               FSCertificate_SetState(FSCertificate* c, uint32_t set, uint32_t remove);
 
+    typedef struct FSGeoRegion FSGeoRegion;
+    
     FITSEC_EXPORT const FSItsAidSsp* FSCertificate_GetAppPermissions(const FSCertificate* c, FSItsAid aid);
 
     const FSPublicKey* FSCertificate_GetVerificationKey(const FSCertificate* c);
     const FSPublicKey* FSCertificate_GetEncryptionKey(const FSCertificate* c);
     bool               FSCertificate_SetEncryptionPrivateKey(FSCertificate * c, FSPrivateKey * key);
     bool               FSCertificate_SetVerificationPrivateKey(FSCertificate * c, FSPrivateKey * key);
-
-
 
     // load certificate from the buffer
     // does not perform any validation
@@ -79,7 +81,9 @@ extern "C" {
 
     FITSEC_EXPORT bool           FSCertificate_IsValidForTime(const FSCertificate* c, FSTime64 time, int* const perror);
     FITSEC_EXPORT bool           FSCertificate_IsValidForPosition(const FSCertificate* c, const FSLocation* position, int* const perror);
+    FITSEC_EXPORT bool           FSCertificate_IsValidForRegion(const FSCertificate* c, const FSGeoRegion* region, int* const perror);
     FITSEC_EXPORT bool           FSCertificate_IsValidForAppSSP(const FSCertificate* c, const FSItsAidSsp* ssp, int* const perror);
+    FITSEC_EXPORT bool           FSCertificate_IsValidForIssuingSSP(const FSCertificate * c, const FSItsAidSsp * ssp, int chainLength, int * const perror);
     FITSEC_EXPORT bool           FSCertificate_IsValidFor(const FSCertificate* c, const FSItsAidSsp* ssp, const FSLocation* position, FSTime64 time, int* const perror);
 
     FITSEC_EXPORT bool           FSCertificate_SetCRLParams(FSCertificate* c, FSTime32 thisUpdate, FSTime32 nextUpdate);

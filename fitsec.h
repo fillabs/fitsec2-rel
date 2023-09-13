@@ -49,7 +49,6 @@ extern "C" {
         FS_PAYLOAD_UNSECURED = 1,
         FS_PAYLOAD_SIGNED = 2,
         FS_PAYLOAD_ENCRYPTED = 4,
-        FS_PAYLOAD_SIGNED_AND_ENCRYPTED = 6,
         FS_PAYLOAD_EXTERNAL = 8,
         FS_PAYLOAD_SIGNED_EXTERNAL = 10,
     } FSPayloadType;
@@ -97,6 +96,7 @@ extern "C" {
 
         FSEvent_HttpGetRequest,
         FSEvent_HttpPostRequest,
+        FSEvent_StoreData,
     } FSEventId;
 
     typedef union FSEventParam FSEventParam;
@@ -158,11 +158,15 @@ extern "C" {
         unsigned int                maxReceivedLifeTime; // maximum life time of received certificate
         unsigned int                purgePeriod;         // period in seconds when certificate pools must be purged. Set to 0 to do not purge
         unsigned int                encKeyStorageDuration; // time to keep symmetric encryption keys after last usage. Set to 0 to skip PSK.
+        unsigned int                ctlCheckPeriod;        // check for CTL every XX seconds (set to at least 24 hours)
+        unsigned int                crlCheckPeriod;        // check for CRL every XX seconds (set to at least 24 hours)
+        int                         storeTrustInformation; // call user callback funtion to store received trust information and AA certs
     } FitSecConfig;
     #define FS_DEFAULT_PROTOCOL_VERSION 3
     #define FS_DEFAULT_RECEIVED_LIFETIME 2
     #define FS_DEFAULT_PURGE_PERIOD FS_DEFAULT_RECEIVED_LIFETIME
-
+    #define FS_DEFAULT_CTL_CHECK_PERIOD (24 * 3600) // each 24h
+    #define FS_DEFAULT_CRL_CHECK_PERIOD (24 * 3600) // each 24h
 
 
     /** Initialize the config structure with default values */
@@ -213,6 +217,51 @@ extern "C" {
     */
     FITSEC_EXPORT void FitSec_RelinkCertificates(FitSec * e);
 
+    /**
+     * @brief Return currently used certificate associated with the application
+     * @param aid The aplication ID.
+     * @return The current application certificate  
+     */
+
+    FITSEC_EXPORT const FSCertificate *  FitSec_CurrentCertificate(FitSec* e, FSItsAid aid);
+
+    /*******************************************************************************************/
+    /****    Trust lists API                                                                ****/
+    /*******************************************************************************************/
+    /**
+     * @brief Apply CTL/CRL information from the given message
+     * 
+     * Message must be of @see FITSEC_AID_CRL or @see FITSEC_AID_CTL application id
+     * 
+     * The function will perform message validation internally. Do not need to call
+     * @see FitSec_ValidateSignedMessage before this function
+     * 
+     * @param e The FitSec engine
+     * @param m The parsed message.
+     * @param curTime The current ITS time. Needs to drop out stored requests. 
+     * @return true if function made some changes.
+     * 
+     * @note Do not forget to call @see FitSec_RevalidateCertificates when one of the
+     * calls to this function returns true.
+     */
+    FITSEC_EXPORT bool FitSec_ApplyTrustInformationMessage(FitSec* e, FSMessageInfo * m);
+    
+    /**
+     * @brief Apply CTL/CRL information from the given buffer.
+     * 
+     * The function parse message from the given buffer, and call the @see FitSec_ApplyTrustInformationMessage
+     * 
+     * @param e The FitSec engine
+     * @param curTime The current ITS time. Needs to drop out stored requests. 
+     * @param data The message buffer
+     * @param len Buffer size
+     * @return Error code or zero on success.
+     * 
+     * @note Do not forget to call @see FitSec_RevalidateCertificates when one of the
+     * calls to this function returns true.
+     */
+    FITSEC_EXPORT int  FitSec_ApplyTrustInformation(FitSec* e, FSTime32 curTime, const char * data, size_t len);
+
     /** Revoke certificate with given ID.
         The certificate (if found) will be marked as revoked.
         @ref FitSec_RelinkCertificates shall be called after the serie of revokations.
@@ -227,6 +276,11 @@ extern "C" {
      * */
     FITSEC_EXPORT void FitSec_RevalidateCertificates(FitSec* e);
 
+    FITSEC_EXPORT void FitSec_RequestTrustInfo(FitSec* e, FSTime32 curTime);
+
+    /*******************************************************************************************/
+    /****    Certificate API                                                                ****/
+    /*******************************************************************************************/
 
     /** Return certificate digest
         @return the HashedId8 of the certificate
@@ -253,8 +307,6 @@ extern "C" {
     */
     FITSEC_EXPORT uint32_t              FitSec_CertificateState(const FSCertificate* c);
 
-    FITSEC_EXPORT const FSCertificate *  FitSec_CurrentCertificate(FitSec* e, FSItsAid aid);
-
     /** Select certificate to be used as current pseudonym.
      *  Function doesn't validate the certificate. 
      *   @param e       pointer to the FitSec engine
@@ -264,7 +316,10 @@ extern "C" {
      * 
      *   NOTE: This function may trigger the Id changing process.
      */
-    FITSEC_EXPORT bool FitSec_Select(FitSec * e, FSItsAid aid, FSHashedId8 cert_id);
+    FITSEC_EXPORT FSCertificate * FitSec_Select(FitSec * e, FSItsAid aid, FSHashedId8 cert_id);
+
+    FITSEC_EXPORT FSCertificate *  FitSec_SelectATCertificate(FitSec * e, const FSItsAidSsp * appssp, const FSLocation * position, FSTime64 time, int* perror);
+    FITSEC_EXPORT FSCertificate *  FitSec_SelectCACertificate(FitSec * e, const FSItsAidSsp * appssp, const FSItsAidSsp * issuessp, const FSGeoRegion * region, FSTime64 startTime, FSTime64 endTime, int* perror);
 
     /** Request for Pseudonym change.
      *  Change the pseudonym for any suitable pseudonym or enqueue this change.
@@ -295,7 +350,7 @@ extern "C" {
 
     /** Cleanup all data, forget all foreign certificates, 
         clean all local certificates if clean_local flag is set */
-    FITSEC_EXPORT void FitSec_Clean(FitSec * e, int clean_local);
+    FITSEC_EXPORT void FitSec_Clean(FitSec * e);
     
     /** Cleanup engine and free all allocated memory */
     FITSEC_EXPORT void FitSec_Free(FitSec * e);
@@ -307,11 +362,10 @@ extern "C" {
 
     typedef enum {
         FS_SI_UNKNOWN = 0,
-        FS_SI_SELF = 0,
         FS_SI_AUTO = 0,
         FS_SI_DIGEST,
         FS_SI_CERTIFICATE,
-        FS_SI_NO_SIGNATURE,
+        FS_SI_SELF,
     } FSSignerInfoType;
     
     struct FSMessageInfo {
@@ -331,21 +385,51 @@ extern "C" {
         FSPayloadType         payloadType;        ///< Type of the payload
         FS3DLocation          position;           ///< Message position. See functions descriptions.
         FSTime64              generationTime;     ///< Message generation time. See functions descriptions.
-        FSSignerInfoType      signerType;         ///< Signer type (certificate/digest/noSignature)
-        FSCertificate       * cert;               ///< Certificate to be used for signature/encryption
-        FSItsAidSsp           ssp;                ///< SSP of the message to be used to select proper certificate 
-                                                  ///    or to inform the application about allowed message content
-        struct {
-            FSSymmAlg         alg;                ///< Symmetric encryption key algorithm
-            uint8_t         * key;                ///< Symmetric encryption key (external memory)
-            FSHashedId8       pskId;              ///< Symmetric encryption key id
-        }encryption;
+        union{
+            struct {
+                union{
+                    FSCertificate   * cert;       ///< Certificate to be used for signature
+                    FSPublicKey     * pub;        ///< Needs to be set for SELF-verification
+                    FSPrivateKey    * priv;       ///< Needs to be set for SELF-signing
+                };
+                FSSignerInfoType      signerType; ///< Signer type (certificate/digest/noSignature)
+                FSItsAidSsp           ssp;        ///< SSP of the message to be used to select proper certificate 
+                FSCurve               alg;        ///< PK algorithm to be used for SELF-signing
+            }sign;                                ///  or to inform the application about allowed message content
+            struct {
+                union {
+                    FSCertificate   * cert;       ///< Certificate to be used for encryption / decription
+                    FSPublicKey     * pub;        ///< Needs to be set for EC PSK-encryption
+                    FSPrivateKey    * priv;       ///< Needs to be set for EC PSK-decription
+                };
+                struct {
+                    FSSymmAlg         alg;            ///< Symmetric encryption key algorithm
+                    uint8_t         * key;            ///< Symmetric encryption key (external memory)
+                    FSHashedId8       pskId;          ///< Symmetric encryption key id
+                }symm;
+            }encryption;
+/*
+            union{                                ///< shortcut for certificate or keys
+                FSCertificate   * cert;
+                FSPublicKey     * pub;
+                FSPrivateKey    * priv;
+            };
+*/
+        };
 
         /// @internal
         uint32_t              flags;
         void *_ptrs[10];
         /// @endinternal
     };
+
+    typedef enum {
+     FSDT_UNKNOWN,
+     FSDT_CERTIFICATE,
+     FSDT_CTL,
+     FSDT_CRL,   
+     FSDT_LINK   
+    }FSDataType;
 
     union FSEventParam
     {
@@ -355,16 +439,29 @@ extern "C" {
             const FSCertificate* new_cert;
         }idChange;
         FSMessageInfo msg;
-/*
+
         struct {
-        	const FSCertificate * certificate;
+        	FSCertificate * certificate;
         	FSCertificateState from;
         	FSCertificateState to;
         }certStateChange;
-*/
+
         struct {
             const char url[1];
-        }httpReq;
+        }httpGet;
+
+        struct {
+            const char * url;
+            const char * body;
+            size_t       bodylen;
+        }httpPost;
+
+        struct {
+            FSHashedId8 id;
+            FSDataType  type;
+            size_t      len;
+            const char *data;
+        }store;
     };
 
     FITSEC_EXPORT bool FitSec_CallEventCallback(FitSec * e, void * user, FSEventId event, const FSEventParam * params);
@@ -395,7 +492,7 @@ extern "C" {
     FITSEC_EXPORT void FSMessageInfo_Cleanup(void);
 
     /** Proceed with enqueued asynchronous tasks.
-        This function must be called from the working thread in order to execute enqueued operations.
+        This function must be called from the working thread to execute enqueued operations.
      */
     FITSEC_EXPORT bool FitSec_ProceedAsync(FitSec * const e);
 
@@ -504,12 +601,12 @@ extern "C" {
     /** Install pre-shared key in the DB
      *  @param e           [In]      The engine
      *  @param alg         [In]      The encryption algorythm
-     *  @param curTime     [In]      The current ITS time. (msg generation time / 100000,  for example)
+     *  @param curTime     [In]      The current ITS time. (msg generation time / 1000000,  for example)
      *  @param symmKey     [In]      The encryption key. Length depends of algorithm.
      *  @param digest      [In]      The encryption key digest if the key is already stored in the DB 
      *  @return            The digest of the key
      */
-    FITSEC_EXPORT FSHashedId8 FitSec_InstallPreSharedKey(FitSec * e, FSSymmAlg alg, uint32_t curTime, const uint8_t * symmKey, FSHashedId8 digest);
+    FITSEC_EXPORT FSHashedId8 FitSec_InstallPreSharedSymmKey(FitSec * e, FSSymmAlg alg, uint32_t curTime, const uint8_t * symmKey, FSHashedId8 digest);
 
     /** Add pre-shared key as ancrypted message receipient.
      *  @param e           [In]      The engine
@@ -585,7 +682,6 @@ extern "C" {
      *  payloadSize    | out: the maximum size of the payload.
      */
     FITSEC_EXPORT size_t FitSec_PrepareSignedMessage(FitSec * e, FSMessageInfo* m);
-    FITSEC_EXPORT size_t FitSec_PrepareSignedAndEncryptedMessage(FitSec * e, FSMessageInfo* m);
 
     /** Finalize signed ITS message envelop. Perform necessary crypto operations
      *  @param e       [In]      The engine
@@ -640,6 +736,9 @@ extern "C" {
      *  ssp            | out: the AID of the message and the SSP of the signing certificate
      */
     FITSEC_EXPORT size_t FitSec_ParseMessage(FitSec* e, FSMessageInfo* info);
+    FITSEC_EXPORT size_t FitSec_ParseSignedMessage(FitSec* e, FSMessageInfo* m);
+    FITSEC_EXPORT size_t FitSec_ParseUnsecuredMessage(FitSec* e, FSMessageInfo* m);
+    FITSEC_EXPORT size_t FitSec_ParseEncryptedMessage(FitSec* e, FSMessageInfo* m);
 
     /** Validate signed ITS message.
      *  @param e       [In]      The engine

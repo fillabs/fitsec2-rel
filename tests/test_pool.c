@@ -31,7 +31,7 @@ by simple request to the author.
 
 const char * storage1 = "POOL_1";
 
-int loadCertificates(FitSec * e, const pchar_t * _path);
+int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path);
 
 int main(int argc, char** argv)
 {
@@ -45,12 +45,12 @@ int main(int argc, char** argv)
 	for(int n=0; n<2; n++){
 		if(argc > 1){
 			for (int i = 1; i < argc; i++) {
-				loadCertificates(e, argv[i]);
+				loadCertificates(e, 0, argv[i]);
 			}
 		}else
-			loadCertificates(e, storage1);
+			loadCertificates(e, 0, storage1);
 		FitSec_RelinkCertificates(e);
-		FitSec_Clean(e, 1);
+		FitSec_Clean(e);
 	}
 
 	FitSec_Free(e);

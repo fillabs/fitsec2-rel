@@ -106,7 +106,7 @@ static unsigned long unix2itstime32(time_t t)
     return ((unsigned long) addleapseconds(t)) - ITS_UTC_EPOCH;
 }
 */
-int loadCertificates(FitSec * e, const pchar_t * _path);
+int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path);
 int strpdate(const char* s, struct tm* t);                // defined in utils.c
 
 
@@ -156,11 +156,11 @@ int main(int argc, char** argv)
     if( storage3 )
         e[2] = FitSec_New(&cfg, "3");
 
-    if (0 >= loadCertificates(e[0], storage1)) {
+    if (0 >= loadCertificates(e[0], _curTime, storage1)) {
         return -1;
     }
 
-    if (0 >= loadCertificates(e[1], storage2)) {
+    if (0 >= loadCertificates(e[1], _curTime, storage2)) {
         FitSec_Free(e[0]);
         return -1;
     }
@@ -168,7 +168,7 @@ int main(int argc, char** argv)
     FitSec_RelinkCertificates(e[1]);
 
     if (storage3){
-        if (0 >= loadCertificates(e[2], storage3)) {
+        if (0 >= loadCertificates(e[2], _curTime, storage3)) {
             FitSec_Free(e[0]);
             FitSec_Free(e[1]);
             return -1;
@@ -185,9 +185,9 @@ int main(int argc, char** argv)
 
     _beginTime = _curTime;
 
-    ms.ssp.aid = 36;
+    ms.sign.ssp.aid = FITSEC_AID_CAM;
+    ms.sign.ssp.sspData.bits.version = 1;
     ms.position = position;
-    ms.ssp.sspData.bits.version = 1;
     ms.payloadType = FS_PAYLOAD_SIGNED;
 
     // skip first messages with certificate
@@ -198,7 +198,8 @@ int main(int argc, char** argv)
 
     // 1. send message with digest
     printf("\n1. Send CAM signed by Digest\n");
-    ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+    ms.sign.ssp.sspData.opaque[0] = 1;
+    ms.sign.ssp.sspData.opaque[1] = 0;
     len = SendMsg(e[0], buf, sizeof(buf), 1, &ms);
     if (len > 0) {
         // 2. detect unknown digest
@@ -208,7 +209,8 @@ int main(int argc, char** argv)
 
     // 2. send request for unknown certificate signed with certificate
     printf("\n2. Send CAM signed by unknown certificate with request for AT\n");
-    ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+    ms.sign.ssp.sspData.opaque[0] = 1;
+    ms.sign.ssp.sspData.opaque[1] = 0;
     len = SendMsg(e[1], buf, sizeof(buf), 2, &ms);
     if (len > 0) {
         // detect request for certificate and new signed certificate, detect unknown AA certificate
@@ -220,7 +222,8 @@ int main(int argc, char** argv)
 
     // 3. send request for unknown AA certificate
     printf("\n3. Send CAM signed by unknown cert with req for unknown AA\n");
-    ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+    ms.sign.ssp.sspData.opaque[0] = 1;
+    ms.sign.ssp.sspData.opaque[1] = 0;
     len = SendMsg(e[0], buf, sizeof(buf), 3, &ms);
     if (len > 0) {
         // detect request for unknown certificate
@@ -231,7 +234,8 @@ int main(int argc, char** argv)
     // 4. send AA certificate from 3rd party
     if (e[2]) {
         printf("\n4a. Send CAM signed by cert with request for AA from 3rd party\n");
-        ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+        ms.sign.ssp.sspData.opaque[0] = 1;
+        ms.sign.ssp.sspData.opaque[1] = 0;
         len = SendMsg(e[2], buf, sizeof(buf), 4, &ms);
         if (len > 0) {
             // validate message
@@ -240,7 +244,8 @@ int main(int argc, char** argv)
         }
 
         printf("\n4b. Send CAM signed by digest with requested AA\n");
-        ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+        ms.sign.ssp.sspData.opaque[0] = 1;
+        ms.sign.ssp.sspData.opaque[1] = 0;
         len = SendMsg(e[2], buf, sizeof(buf), 4, &ms);
         if (len > 0) {
             // validate message
@@ -249,7 +254,8 @@ int main(int argc, char** argv)
         }
 
         printf("\n4c. Send CAM signed by digest without requested AA \n");
-        ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+        ms.sign.ssp.sspData.opaque[0] = 1;
+        ms.sign.ssp.sspData.opaque[1] = 0;
         len = SendMsg(e[1], buf, sizeof(buf), 4, &ms);
         if (len > 0) {
             // validate message
@@ -259,7 +265,8 @@ int main(int argc, char** argv)
 
         // 5. send message containing requested AA certificate
         printf("\n5a. Send CAM signed by certificate without requested AA\n");
-        ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+        ms.sign.ssp.sspData.opaque[0] = 1;
+        ms.sign.ssp.sspData.opaque[1] = 0;
         len = SendMsg(e[0], buf, sizeof(buf), 5, &ms);
         if (len > 0) {
             // validate message
@@ -269,7 +276,8 @@ int main(int argc, char** argv)
     }
     else {
         printf("\n4. Send CAM signed by digest with requested AA \n");
-        ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+        ms.sign.ssp.sspData.opaque[0] = 1;
+        ms.sign.ssp.sspData.opaque[1] = 0;
         len = SendMsg(e[1], buf, sizeof(buf), 4, &ms);
         if (len > 0) {
             // validate message
@@ -278,7 +286,8 @@ int main(int argc, char** argv)
     }
     // 5. send message containing requested AA certificate
     printf("\n6. Send CAM signed by digest with requested AA\n");
-    ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+    ms.sign.ssp.sspData.opaque[0] = 1;
+    ms.sign.ssp.sspData.opaque[1] = 0;
     len = SendMsg(e[0], buf, sizeof(buf), 6, &ms);
     if (len > 0) {
         // validate message
@@ -287,7 +296,8 @@ int main(int argc, char** argv)
     }
 
     printf("\n5. Send CAM signed by digest with requested AA\n");
-    ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+    ms.sign.ssp.sspData.opaque[0] = 1;
+    ms.sign.ssp.sspData.opaque[1] = 0;
     len = SendMsg(e[1], buf, sizeof(buf), 6, &ms);
     if (len > 0) {
         // validate message
@@ -296,7 +306,8 @@ int main(int argc, char** argv)
     }
     if (e[2]) {
         printf("\n5. Send CAM signed by digest with requested AA\n");
-        ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+        ms.sign.ssp.sspData.opaque[0] = 1;
+        ms.sign.ssp.sspData.opaque[1] = 0;
         len = SendMsg(e[2], buf, sizeof(buf), 6, &ms);
         if (len > 0) {
             // validate message
@@ -318,7 +329,7 @@ int main(int argc, char** argv)
 static size_t SendMsg(FitSec* e, char* buf, size_t bsize, int stage, FSMessageInfo* m)
 {
     FSMessageInfo_SetBuffer(m, buf, bsize);
-	m->signerType = FS_SI_AUTO;    
+	m->sign.signerType = FS_SI_AUTO;    
     size_t len = FitSec_PrepareSignedMessage(e, m);
     if (len > 0) {
         m->payloadSize = sizeof(_defaultPayload);
@@ -326,7 +337,7 @@ static size_t SendMsg(FitSec* e, char* buf, size_t bsize, int stage, FSMessageIn
         m->generationTime = (((FSTime64)_beginTime * 100) + stage) * 10000;
         
         if (FitSec_FinalizeSignedMessage(e, m)) {
-            fprintf(stderr, "SEND %s %2d:\t OK %s\n", FitSec_Name(e), stage, _signer_types[m->signerType]);
+            fprintf(stderr, "SEND %s %2d:\t OK %s\n", FitSec_Name(e), stage, _signer_types[m->sign.signerType]);
             return m->messageSize;
         }
     }
@@ -354,50 +365,6 @@ static size_t RecvMsg(FitSec* e, char* buf, size_t len, int stage, FSMessageInfo
         fprintf(stderr, "VALD %s %2d:\t ERROR: 0x%08X %s\n", FitSec_Name(e), stage, m->status, FitSec_ErrorMessage(m->status));
         return 0;
     }
-    fprintf(stderr, "RECV %s %2d:\t OK %s\n", FitSec_Name(e), stage, _signer_types[m->signerType]);
+    fprintf(stderr, "RECV %s %2d:\t OK %s\n", FitSec_Name(e), stage, _signer_types[m->sign.signerType]);
     return m->messageSize;
 }
-
-/*
-static bool _onSigned(FitSec* e, void* user, FSEventId event, const FSEventParam* params)
-{
-    FitSec* e2 = (FitSec*)user;
-    FSMessageInfo* ms = (FSMessageInfo*)params;
-    if (ms->status != 0) {
-        fprintf(stderr, "SEND %s %s:\t ERROR: 0x%08X %s\n", FitSec_Name(e), __FUNCTION__, ms->status, FitSec_ErrorMessage(ms->status));
-        free(ms->message);
-        return false;
-    }
-    fprintf(stderr, "SEND %s %s:\t OK %s\n", FitSec_Name(e), __FUNCTION__, _signer_types[ms->signerType]);
-    
-    FSMessageInfo * m = FSMessageInfo_Allocate();
-    if (!FitSec_ParseSignedMessage(e2, m, ms->message, ms->messageSize)) {
-        fprintf(stderr, "PARS %s %s:\t ERROR: 0x%08X %s\n", FitSec_Name(e2), __FUNCTION__, m->status, FitSec_ErrorMessage(m->status));
-        free(ms->message);
-        return false;
-    }
-    else {
-        if (!FitSec_ValidateSignedMessageAsync(e2, m, NULL, NULL, 0)) {
-            FSMessageInfo_Free(m);
-            fprintf(stderr, "VALD %s %s:\t ERROR: 0x%08X %s\n", FitSec_Name(e2), __FUNCTION__, m->status, FitSec_ErrorMessage(m->status));
-            free(ms->message);
-            return false;
-        }
-    }
-    ms->message = NULL;
-    return true;
-}
-
-static bool _onValidated(FitSec* e, void* user, FSEventId event, const FSEventParam* params)
-{
-    FSMessageInfo* m = (FSMessageInfo*)params;
-    if (m->status != 0) {
-        fprintf(stderr, "VALD %s %s:\t ERROR: 0x%08X %s\n", FitSec_Name(e), __FUNCTION__, m->status, FitSec_ErrorMessage(m->status));
-        free(m->message);
-        return false;
-    }
-    fprintf(stderr, "VALID %s %s:\t OK %s\n", FitSec_Name(e), __FUNCTION__, _signer_types[m->signerType]);
-    free(m->message);
-    return true;
-}
-*/

@@ -74,7 +74,7 @@ static copt_t options [] = {
 };
 
 int strpdate(const char* s, struct tm* t);                // defined in utils.c
-int loadCertificates(FitSec * e, const pchar_t * _path);
+int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path);
 
 static void test_encrypt(FitSec* e1, FitSec* e2);
 
@@ -128,11 +128,11 @@ int main(int argc, char** argv)
     e[0] = FitSec_New(&cfg1, "1");
     e[1] = FitSec_New(&cfg2, "2");
     
-    if (0 >= loadCertificates(e[0], storage1)) {
+    if (0 >= loadCertificates(e[0], _curTime, storage1)) {
         return -1;
     }
     
-    if (0 >= loadCertificates(e[1], storage2)) {
+    if (0 >= loadCertificates(e[1], _curTime, storage2)) {
         FitSec_Free(e[0]);
         return -1;
     }
@@ -203,14 +203,12 @@ static void  test_encrypt(FitSec* e1, FitSec* e2) {
 
     _beginTime = _curTime;
 
-    ms.ssp.aid = FITSEC_AID_CAM;
     ms.position = position;
-    ms.ssp.sspData.bits.version = 1;
-    ms.payloadType = FS_PAYLOAD_SIGNED;
+    ms.payloadType = FS_PAYLOAD_ENCRYPTED;
     ms.generationTime = ((FSTime64)_beginTime) * 1000000;
 
- //   FSHashedId8 tgt1 = FitSec_CertificateDigest(FitSec_CurrentCertificate(e1, ms.ssp.aid));
-    FSHashedId8 tgt2 = FitSec_CertificateDigest(FitSec_CurrentCertificate(e2, ms.ssp.aid));
+ //   FSHashedId8 tgt1 = FitSec_CertificateDigest(FitSec_CurrentCertificate(e1, FITSEC_AID_CAM));
+//    FSHashedId8 tgt2 = FitSec_CertificateDigest(FitSec_CurrentCertificate(e2, FITSEC_AID_CAM));
 
     uint8_t ekey[17];
     ekey[0] = 0;
@@ -218,15 +216,15 @@ static void  test_encrypt(FitSec* e1, FitSec* e2) {
     
     FitSec_PrepareEncryptedMessage(e1, &ms);
 
-    FSHashedId8 psk = FitSec_InstallPreSharedKey(e1, 0, time32from64(ms.generationTime), &ekey[1], 0);
-    FitSec_InstallPreSharedKey(e2, 0, time32from64(ms.generationTime), &ekey[1], psk);
+    FSHashedId8 psk = FitSec_InstallPreSharedSymmKey(e1, 0, time32from64(ms.generationTime), &ekey[1], 0);
+    FitSec_InstallPreSharedSymmKey(e2, 0, time32from64(ms.generationTime), &ekey[1], psk);
 
     FitSec_AddEncryptedMessagePSKReceipient(e1, &ms, FS_AES_128_CCM, NULL, psk);
 //    FitSec_AddEncryptedMessageCertificateReceipient(e1, &ms, tgt2);
 
     if(_sendAndRcv(e1, e2, &ms)){
         uint8_t key[16];
-        cmemcpy(key, 16, ms.encryption.key, 16);
+        cmemcpy(key, 16, ms.encryption.symm.key, 16);
 
         FitSec_PrepareEncryptedMessage(e2, &ms);
 //        FitSec_AddEncryptedMessagePSKReceipient(e2, &ms, FS_AES_128_CCM, key, 0);

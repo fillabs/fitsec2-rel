@@ -41,7 +41,7 @@ char *          _o_curStrTime = NULL;
 static uint64_t     _curTime = 0;
 
 int strpdate(const char* s, struct tm* t);                // defined in utils.c
-int loadCertificates(FitSec * e, const pchar_t * _path);
+int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path);
 
 static copt_t options [] = {
     { "h?", "help",     COPT_HELP,     NULL,          "Print this help page"},
@@ -57,9 +57,9 @@ static copt_t options [] = {
 static char _error_buffer[PCAP_ERRBUF_SIZE];
 
 static void my_packet_handler(
-    u_char *args,
+    uint8_t *args,
     const struct pcap_pkthdr *header,
-    const u_char *packet
+    const uint8_t *packet
 );
 
 int main(int argc, char** argv)
@@ -92,7 +92,7 @@ int main(int argc, char** argv)
         _curTime = unix2itstime64(time(NULL));
     }
 
-    if( 0 >= loadCertificates(e, _o_storage)){
+    if( 0 >= loadCertificates(e, _curTime, _o_storage)){
 	FitSec_Free(e);
         fprintf(stderr, "Load certificates failed\n");
         return 1;
@@ -105,10 +105,9 @@ int main(int argc, char** argv)
             continue;
         }
         
-        pcap_loop(handle, 0, my_packet_handler, (u_char*)e);
+        pcap_loop(handle, 0, my_packet_handler, (uint8_t*)e);
     }
 
-    FitSec_Clean(e, 1);
     FitSec_Free(e);
     return 0;
 }
@@ -126,16 +125,16 @@ __PACKED__(struct GN_BasicHeader
 typedef struct EtherHeader EtherHeader;
 __PACKED__(struct EtherHeader
 {
-    u_char   dhost[6];
-    u_char   shost[6];
-    u_short  type;
-    u_char   next;
+    uint8_t   dhost[6];
+    uint8_t   shost[6];
+    uint16_t  type;
+    uint8_t   next;
 });
 
 static void my_packet_handler(
-    u_char *args,
+    uint8_t *args,
     const struct pcap_pkthdr *header,
-    const u_char *packet
+    const uint8_t *packet
 )
 {
     FitSec * e = (FitSec *)args;

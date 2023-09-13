@@ -75,7 +75,8 @@ static const char* _signer_types[] = {
     "none",
 };
 
-int loadCertificates(FitSec * e, const pchar_t * _path);
+int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path);
+int strpdate(const char* s, struct tm* t);                // defined in utils.c
 
 static char _defaultPayload[] = "1234567890";
 
@@ -115,11 +116,11 @@ int main(int argc, char** argv)
     es = FitSec_New(&cfg, "1");
     er = FitSec_New(&cfg, "2");
 
-    if (0 >= loadCertificates(es, _storage1)) {
+    if (0 >= loadCertificates(es, _curTime, _storage1)) {
         return -1;
     }
 
-    if (0 >= loadCertificates(er, _storage2)) {
+    if (0 >= loadCertificates(er, _curTime, _storage2)) {
         FitSec_Free(es);
         return -1;
     }
@@ -135,8 +136,8 @@ int main(int argc, char** argv)
     for (unsigned int i = 0; i < _msg_count; i++) {
         size_t len;
 
-        ms.ssp.aid = 36;                    // CAM 
-        ms.ssp.sspData.bits.version = 1;    // version is required. All SSP bits are set to zero. No special container
+        ms.sign.ssp.aid = 36;                    // CAM 
+        ms.sign.ssp.sspData.bits.version = 1;    // version is required. All SSP bits are set to zero. No special container
         ms.payloadType = FS_PAYLOAD_SIGNED; // can be skipped. hardcoded for CAM  
 
         // Prepare message buffer
@@ -149,14 +150,14 @@ int main(int argc, char** argv)
         ms.generationTime = _curTime + (FSTime64)(1000000.0 * i / _rate);
         // position is needed to select certificate. Otherwise only certificates without region restriction can be selected
         ms.position = _position;
-        ms.signerType = FS_SI_AUTO; // reset
+        ms.sign.signerType = FS_SI_AUTO; // reset
 
         len = FitSec_PrepareSignedMessage(es, &ms);
         if (len == 0) {
             fprintf(stderr, "SEND %s %2d:\t ERROR: 0x%08X %s\n", FitSec_Name(es), i, ms.status, FitSec_ErrorMessage(ms.status));
             continue;
         }
-        if (ms.cert == NULL) {
+        if (ms.sign.cert == NULL) {
             fprintf(stderr, "SEND %s %2u:\t ERROR: signing certificate not found\n", FitSec_Name(es), i);
             continue;
         }
@@ -172,7 +173,7 @@ int main(int argc, char** argv)
             fprintf(stderr, "SEND %s %2d:\t ERROR: 0x%08X %s\n", FitSec_Name(es), i, ms.status, FitSec_ErrorMessage(ms.status));
             continue;
         }
-        fprintf(stderr, "SEND %s %2u:\t OK %s\n", FitSec_Name(es), i, _signer_types[ms.signerType]);
+        fprintf(stderr, "SEND %s %2u:\t OK %s\n", FitSec_Name(es), i, _signer_types[ms.sign.signerType]);
 
         if(out){
             fwrite(ms.message, 1, ms.messageSize, out);
@@ -193,7 +194,7 @@ int main(int argc, char** argv)
             fprintf(stderr, "VALD %s %2d:\t ERROR: 0x%08X %s\n", FitSec_Name(er), i, mr.status, FitSec_ErrorMessage(mr.status));
             continue;
         }
-        fprintf(stderr, "RECV %s %2d:\t OK %s\n", FitSec_Name(er), i, _signer_types[mr.signerType]);
+        fprintf(stderr, "RECV %s %2d:\t OK %s\n", FitSec_Name(er), i, _signer_types[mr.sign.signerType]);
         // CHECK IT
 
         if (ms.payloadSize != mr.payloadSize) {

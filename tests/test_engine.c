@@ -163,9 +163,11 @@ static void test_CAM(FitSec * e1, FitSec * e2) {
     //int opos = 0;
 
     FSMessageInfo ms = { 0 };
-    ms.ssp.aid = 36;
+    FSMessageInfo_SetBuffer(&ms, buf, sizeof(buf));
+
     ms.position = position;
-    ms.ssp.sspData.bits.version = 1;
+    ms.sign.ssp.aid = FITSEC_AID_CAM;
+    ms.sign.ssp.sspData.bits.version = 1;
     ms.payloadType = FS_PAYLOAD_SIGNED;
 
     _beginTime = _curTime;
@@ -175,8 +177,8 @@ static void test_CAM(FitSec * e1, FitSec * e2) {
     ms.generationTime = ((FSTime64)_beginTime) * 1000;
 
     for (i = 0; i < 100; i++) {
-        ms.generationTime += 100000;
-        size_t len = FitSec_PrepareSignedMessage(e1, &ms, buf, sizeof(buf));
+        ms.generationTime += 100000; // +100 msec
+        size_t len = FitSec_PrepareSignedMessage(e1, &ms);
         ms.payloadSize = sizeof(_defaultPayload);
         memcpy(ms.payload, _defaultPayload, ms.payloadSize);
         len = FitSec_FinalizeSignedMessage(e1, &ms);
@@ -184,14 +186,14 @@ static void test_CAM(FitSec * e1, FitSec * e2) {
             fprintf(stderr, "SEND %s %s:\t ERROR: 0x%08X %s\n", FitSec_Name(e1), __FUNCTION__, ms.status, FitSec_ErrorMessage(ms.status));
         }
         else {
-            fprintf(stderr, "SEND %s %s:\t OK %s\n", FitSec_Name(e1), __FUNCTION__, _signer_types[ms.signerType]);
+            fprintf(stderr, "SEND %s %s:\t OK %s\n", FitSec_Name(e1), __FUNCTION__, _signer_types[ms.sign.signerType]);
 
             FSMessageInfo mr = { 0 };
             if (!FitSec_ParseSignedMessage(e2, &mr, buf, len)) {
                 fprintf(stderr, "PARS %s %s:\t ERROR: 0x%08X %s\n", FitSec_Name(e2), __FUNCTION__, mr.status, FitSec_ErrorMessage(mr.status));
             }
             else {
-                if (!FitSec_ValidateSignedMessage(e2, &mr, NULL, 0)) {
+                if (!FitSec_ValidateSignedMessage(e2, &mr)) {
                     fprintf(stderr, "VALD %s %s:\t ERROR: 0x%08X %s\n", FitSec_Name(e2), __FUNCTION__, mr.status, FitSec_ErrorMessage(mr.status));
                 }
             }
@@ -206,12 +208,14 @@ static void test_DENM(FitSec * e1, FitSec * e2) {
     int i, len;
 //	int opos = 0;
     FSMessageInfo ms = { 0 }, mr = { 0 };
+    FSMessageInfo_SetBuffer(&ms, buf, sizeof(buf));
+    FSMessageInfo_SetBuffer(&mr, buf, sizeof(buf));
 
     _beginTime = _curTime;
 
-    ms.ssp.aid = 37;
+    ms.sign.ssp.aid = 37;
+    ms.sign.ssp.sspData.bits.version = 1;
     ms.position = position;
-    ms.ssp.sspData.bits.version = 1;
     ms.payloadType = FS_PAYLOAD_SIGNED;
     ms.generationTime = ((FSTime64)_beginTime) * 1000;
 
@@ -232,15 +236,17 @@ static void test_CAM_P2P(FitSec * e1, FitSec * e2) {
     int len;
 //	int opos = 0;
     FSMessageInfo ms = { 0 }, mr = { 0 };
+    FSMessageInfo_SetBuffer(&ms, buf, sizeof(buf));
+    FSMessageInfo_SetBuffer(&mr, buf, sizeof(buf));
 
     _beginTime = _curTime;
     
     FitSec_Clean(e1, false);
     FitSec_Clean(e2, false);
     
-    ms.ssp.aid = 36;
+    ms.sign.ssp.aid = 36;
     ms.position = position;
-    ms.ssp.sspData.bits.version = 1;
+    ms.sign.ssp.sspData.bits.version = 1;
     ms.payloadType = FS_PAYLOAD_SIGNED;
     ms.generationTime = ((FSTime64)_beginTime) * 1000;
 
@@ -257,7 +263,7 @@ static void test_CAM_P2P(FitSec * e1, FitSec * e2) {
 
     // 1. send message with digest
     printf("\nSend CAM signed by Digest\n");
-    ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+    ms.sign.ssp.sspData.opaque[0] = 1; ms.sign.ssp.sspData.opaque[1] = 0;
     len = SendMsg(__FUNCTION__, e1, buf, &ms);
     if (len > 0) {
         //		printf("OUT POS = %04X\n", opos); opos += len;
@@ -268,7 +274,7 @@ static void test_CAM_P2P(FitSec * e1, FitSec * e2) {
 
     // 2. send request for unknown certificate signed with certificate
     printf("\nSend CAM signed by unknown certificate with request for AT\n");
-    ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+    ms.sign.ssp.sspData.opaque[0] = 1; ms.sign.ssp.sspData.opaque[1] = 0;
     len = SendMsg(__FUNCTION__, e2, buf, &ms);
     if (len > 0) {
         //		printf("OUT POS = %04X\n", opos); opos += len;
@@ -280,7 +286,7 @@ static void test_CAM_P2P(FitSec * e1, FitSec * e2) {
 
     // 3. send request for unknown AA certificate
     printf("\nSend CAM signed by unknown cert with req for unknown AA\n");
-    ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+    ms.sign.ssp.sspData.opaque[0] = 1; ms.sign.ssp.sspData.opaque[1] = 0;
     len = SendMsg(__FUNCTION__, e1, buf, &ms);
     if (len > 0) {
         //		printf("OUT POS = %04X\n", opos); opos += len;
@@ -291,7 +297,7 @@ static void test_CAM_P2P(FitSec * e1, FitSec * e2) {
 
     // 4. send AA certificate
     printf("\nSend CAM signed by digest with requested AA\n");
-    ms.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
+    ms.sign.ssp.sspData.opaque[0] = 1; ms.ssp.sspData.opaque[1] = 0;
     len = SendMsg(__FUNCTION__, e2, buf, &ms);
     if (len > 0) {
         //		printf("OUT POS = %04X\n", opos); opos += len;

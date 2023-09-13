@@ -44,8 +44,13 @@ extern "C" {
 
     typedef uint64_t FSTime64;
     typedef uint32_t FSTime32;
-    static inline FSTime32 FSTime32from64(FSTime32 t){
-		return (uint32_t)(t/100000);
+    #define _FSTime32from64(t) ((uint32_t)(t/1000000))
+    static inline FSTime32 FSTime32from64(FSTime64 t){
+		return _FSTime32from64(t);
+	}
+    #define _FSTime64from32(t) (((uint64_t)t)*1000000) 
+    static inline FSTime64 FSTime64from32(FSTime32 t){
+		return _FSTime64from32(t);
 	}
 
     typedef struct FSLocation {

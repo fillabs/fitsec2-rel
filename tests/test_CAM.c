@@ -86,7 +86,7 @@ static const char * _signer_types[] = {
 };
 
 int strpdate(const char* s, struct tm* t);                // defined in utils.c
-int loadCertificates(FitSec * e, const pchar_t * _path);  // defined in load_certs.c
+int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path);
 
 static bool _onEvent(FitSec* e, void* user, FSEventId event, const FSEventParam* params)
 {
@@ -175,11 +175,11 @@ int main(int argc, char** argv)
     cfg1.cbOnEventUser = e[1];
     cfg2.cbOnEventUser = e[0];
 
-    if (0 >= loadCertificates(e[0], storage1)) {
+    if (0 >= loadCertificates(e[0], _curTime, storage1)) {
         return -1;
     }
     
-    if (0 >= loadCertificates(e[1], storage2)) {
+    if (0 >= loadCertificates(e[1], _curTime, storage2)) {
         FitSec_Free(e[0]);
         return -1;
     }
@@ -230,11 +230,11 @@ static void test_CAM(FitSec * e1, FitSec * e2) {
         //memset(&m->ssp.sspData, 0, sizeof(m->ssp.sspData));
         //m->ssp.sspData.bits.version = 1;
         m->status = 0;
-        m->ssp = aidSsp;
+        m->sign.ssp = aidSsp;
         m->position = position;
         m->payloadType = FS_PAYLOAD_SIGNED;
         m->generationTime = _beginTime + (FSTime64) (1000000.0 * i / _rate);
-        m->signerType = FS_SI_AUTO;
+        m->sign.signerType = FS_SI_AUTO;
 
         if (7 == (i & 7)) {
             FSHashedId8 id = FitSec_ChangeId(e1, FITSEC_AID_ANY, m->generationTime, (const FSLocation*)&m->position);
@@ -266,7 +266,7 @@ static bool _onSigned(FitSec* e, void* user, FSEventId event, const FSEventParam
         fprintf(stderr, "%-2s SEND %s:\t ERROR: 0x%08X %s\n", FitSec_Name(e), __FUNCTION__, ms->status, FitSec_ErrorMessage(ms->status));
         return false;
     }
-    fprintf(stderr, "%-2s SEND %s:\t OK %016"PRIX64" %s \n", FitSec_Name(e), __FUNCTION__, FitSec_CertificateDigest(ms->cert), _signer_types[ms->signerType]);
+    fprintf(stderr, "%-2s SEND %s:\t OK %016"PRIX64" %s \n", FitSec_Name(e), __FUNCTION__, FitSec_CertificateDigest(ms->sign.cert), _signer_types[ms->sign.signerType]);
     
     if (out) {
         fwrite(ms->message, 1, ms->messageSize, out);
@@ -301,6 +301,6 @@ static bool _onValidated(FitSec* e, void* user, FSEventId event, const FSEventPa
         fprintf(stderr, "%-2s VALD %s:\t ERR 0x%08X %s\n", FitSec_Name(e), __FUNCTION__, m->status, FitSec_ErrorMessage(m->status));
         return false;
     }
-    fprintf(stderr, "%-2s VALD %s:\t OK %016"PRIX64" %s \n", FitSec_Name(e), __FUNCTION__, FitSec_CertificateDigest(m->cert), _signer_types[m->signerType]);
+    fprintf(stderr, "%-2s VALD %s:\t OK %016"PRIX64" %s \n", FitSec_Name(e), __FUNCTION__, FitSec_CertificateDigest(m->sign.cert), _signer_types[m->sign.signerType]);
     return true;
 }

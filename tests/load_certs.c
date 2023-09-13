@@ -39,50 +39,56 @@ by simple request to the author.
 #include <sys/stat.h>
 #endif
 
-int loadCertificates(FitSec * e, const pchar_t * _path);
+int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path);
 
-static char * _data;
-static int    _dsize = 4096;
-static FSHashedId8 _load_certificate(FitSec * e, pchar_t * path, pchar_t * fname)
+static char _data[4096];
+static FSHashedId8 _load_data(FitSec * e, FSTime32 curTime, pchar_t * path, pchar_t * fname)
 {
 	char *data, *end;
 	char *vkey = NULL, *ekey = NULL;
-	size_t   cert_len = 0, vkey_len = 0, ekey_len = 0;
+	size_t vkey_len = 0, ekey_len = 0;
 	pchar_t *ext;
 	FSHashedId8 digest = (FSHashedId8)-1;
 	int error = 0;
 
-	data = _data;
-	end = cstrnload(data, _dsize, path);
+	end = cstraload(&data, path);
 	if (end > data){
-		cert_len = end - data;
+		printf("%-2s %-32.32s:", FitSec_Name(e), fname);	
+        if (((uint8_t)data[0]) == 0x80) {
+			// look for keys
+			size_t cert_len = end - data;
 
-		printf("%-2s %-32.32s:", FitSec_Name(e), fname);
-		
-		// look for keys
-		ext = cstrpathextension(fname);
-		pchar_cpy(ext, ".vkey");
-		vkey = end;
-		end = cstrnload(vkey, _dsize - (vkey - data), path);
-		if (end <= vkey){
-			end = vkey; vkey = NULL;
-		}
-		else{
-			vkey_len = end - vkey;
-		}
+			ext = cstrpathextension(fname);
+			pchar_cpy(ext, ".vkey");
+				vkey = _data;
+				end = cstrnload(vkey, sizeof(_data), path);
+			if (end <= vkey){
+				end = vkey; vkey = NULL;
+			}
+			else{
+				vkey_len = end - vkey;
+			}
 
-		pchar_cpy(ext, ".ekey");
-		ekey = end;
-		end = cstrnload(ekey, _dsize - (ekey - data), path);
-		if (end <= ekey){
-			end = ekey; ekey = NULL;
+			pchar_cpy(ext, ".ekey");
+			ekey = end;
+				end = cstrnload(ekey, sizeof(_data) - (end-_data), path);
+			if (end <= ekey){
+				end = ekey; ekey = NULL;
+			}
+			else{
+				ekey_len = end - ekey;
+			}
+			const FSCertificate* c =  FitSec_InstallCertificate(e, data, cert_len, vkey, vkey_len, ekey, ekey_len, &error);
+			digest = FitSec_CertificateDigest(c);
+			printf(" [%016"PRIX64"] - %s\n", cint64_hton(digest), error ? FitSec_ErrorMessage(error):"CERT");
+		}else{
+            printf("\n");
+			error = FitSec_ApplyTrustInformation(e, curTime, data, end - data);
+			if(error){
+				printf("%20.20s %s\n", "", FitSec_ErrorMessage(error));
+			}
 		}
-		else{
-			ekey_len = end - ekey;
-		}
-		const FSCertificate* c =  FitSec_InstallCertificate(e, data, cert_len, vkey, vkey_len, ekey, ekey_len, &error);
-        digest = FitSec_CertificateDigest(c);
-        printf(" [%016"PRIX64"] - %s\n", cint64_hton(digest), FitSec_ErrorMessage(error));
+		free(data);
 	}
 	else{
 		error = -1;
@@ -91,7 +97,7 @@ static FSHashedId8 _load_certificate(FitSec * e, pchar_t * path, pchar_t * fname
 	return digest;
 }
 
-int loadCertificates(FitSec * e, const pchar_t * _path)
+int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path)
 {
 	size_t plen;
 	pchar_t *path;
@@ -107,8 +113,6 @@ int loadCertificates(FitSec * e, const pchar_t * _path)
 	if (plen == 0) path[plen++] = '.';
 	path[plen] = 0;
 
-	_data = malloc(_dsize); // it must not be more
-
 #ifdef WIN32
 	{
 		WIN32_FIND_DATA fd;
@@ -122,7 +126,7 @@ int loadCertificates(FitSec * e, const pchar_t * _path)
 				do {
 					if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
 						pchar_cpy(path + plen, fd.cFileName);
-						FSHashedId8 digest = _load_certificate(e, path, path + plen);
+						FSHashedId8 digest = _load_data(e, curTime, path, path + plen);
 						if (digest != (FSHashedId8)-1) {
 							ccount++;
 						}
@@ -132,7 +136,7 @@ int loadCertificates(FitSec * e, const pchar_t * _path)
 			}
 		}
 		else {
-			FSHashedId8 digest = _load_certificate(e, path, path + plen);
+			FSHashedId8 digest = _load_data(e, curTime, path, path + plen);
 			if (digest != (FSHashedId8)-1) {
 				ccount++;
 			}
@@ -143,7 +147,7 @@ int loadCertificates(FitSec * e, const pchar_t * _path)
 		struct stat st;
 		if(0 == stat(path, &st)){
 			if (S_ISREG(st.st_mode)) {
-				if (0 <= _load_certificate(e, path, path + plen)) {
+				if (0 <= _load_data(e, curTime, path, path + plen)) {
 					ccount++;
 				}
 			}else if (S_ISDIR(st.st_mode)) {
@@ -154,9 +158,15 @@ int loadCertificates(FitSec * e, const pchar_t * _path)
 					path[plen++] = '/';
 					while(NULL != (de = readdir(d))){
 						pchar_t * ext = pchar_rchr(de->d_name, '.');
-						if(ext && 0 == strcmp(ext, ".oer")){
+						if(ext && (
+							0 == strcmp(ext, ".oer") || 
+							0 == strcmp(ext, ".crl") || 
+							0 == strcmp(ext, ".ctl") || 
+							0 == strcmp(ext, ".lcr") || 
+							0 == strcmp(ext, ".oer") ) 
+						){
 							pchar_cpy(path + plen, de->d_name);
-							if (0 <= _load_certificate(e, path, path + plen)){
+							if (0 <= _load_data(e, curTime, path, path + plen)){
 								errno = 0;
 								ccount++;
 							}
@@ -172,6 +182,5 @@ int loadCertificates(FitSec * e, const pchar_t * _path)
 	}
 #endif
 	free(path);
-	free(_data);
 	return ccount;
 }

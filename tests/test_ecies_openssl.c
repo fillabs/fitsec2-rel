@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <openssl/ec.h>
 #include <openssl/ecdh.h>
@@ -130,14 +131,14 @@ const uint8_t T6[16] = {
     0xC3, 0x06, 0x31, 0xAB, 0x60, 0xD1, 0x16, 0xA2, 0xCA, 0x4F, 0xBE, 0xC9, 0x7C, 0x71, 0x18, 0x24 };
 
 typedef struct {
-    const uint8_t* v;  // Sender’s ephemeral private key
-    const uint8_t* Vx; // Sender’s ephemeral public key X
-    const uint8_t* Vy; // Sender’s ephemeral public key Y
+    const uint8_t* v;  // Senderï¿½s ephemeral private key
+    const uint8_t* Vx; // Senderï¿½s ephemeral public key X
+    const uint8_t* Vy; // Senderï¿½s ephemeral public key Y
     const uint8_t* k;  // AES key to be encrypted [16 bytes]
     const uint8_t* p1; // Hash(RecipientInfo) [16 bytes]
-    const uint8_t* r;  // Recipient’s private key (decryption input)
-    const uint8_t* Rx; // Recipient’s public key X
-    const uint8_t* Ry; // Recipient’s public key Y
+    const uint8_t* r;  // Recipientï¿½s private key (decryption input)
+    const uint8_t* Rx; // Recipientï¿½s public key X
+    const uint8_t* Ry; // Recipientï¿½s public key Y
     const uint8_t* C;  // Encrypted (wrapped) AES key
     const uint8_t* T;  // Authentication tag
 }EciesVector;
