@@ -301,6 +301,7 @@ extern "C" {
         @return the certificate name
     */
     FITSEC_EXPORT const char *          FitSec_CertificateName(const FSCertificate *);
+    FITSEC_EXPORT const char *          FitSec_SetCertificateName(const FSCertificate *, const char * name);
 
     /** Return the state of the certificate
         @return the certificate state
