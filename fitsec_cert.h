@@ -31,8 +31,8 @@ extern "C" {
 #endif
 
 #ifdef DEBUG_CERT_ALLOC 
-    FITSEC_EXPORT FSCertificate* FSCertificate_New_D(FitSec* e, const char* F, int L);
-#   define FSCertificate_New(E) FSCertificate_New_D(E,__FILE__,__LINE__)
+    FITSEC_EXPORT FSCertificate* FSCertificate_New_D(FitSec* e, FSHashedId8 digest, const char* F, int L);
+#   define FSCertificate_New(E,DIGEST) FSCertificate_New_D(E,DIGEST,__FILE__,__LINE__)
     FITSEC_EXPORT void           FSCertificate_Release_D(FSCertificate* c, const char* F, int L);
 #   define FSCertificate_Release(C) FSCertificate_Release_D(C,__FILE__,__LINE__)
     FITSEC_EXPORT FSCertificate* FSCertificate_Retain_D(FSCertificate* c, const char* F, int L);
@@ -40,17 +40,15 @@ extern "C" {
     FITSEC_EXPORT FSCertificate* FSCertificate_Assign_D(FSCertificate** p, FSCertificate* c, const char* F, int L);
 #   define FSCertificate_Assign(C,S) FSCertificate_Assign_D(C,S,__FILE__,__LINE__)
 #else
-    FITSEC_EXPORT FSCertificate* FSCertificate_New(FitSec* e);
+    FITSEC_EXPORT FSCertificate* FSCertificate_New(FitSec* e, FSHashedId8 digest);
     FITSEC_EXPORT void           FSCertificate_Release(FSCertificate* c);
     FITSEC_EXPORT FSCertificate* FSCertificate_Retain(FSCertificate* c);
     FITSEC_EXPORT FSCertificate* FSCertificate_Assign(FSCertificate** p, FSCertificate* c);
 #endif
 
     typedef enum {
-        FSCERT_LOADED   = 0x01,
+        FSCERT_TRUSTED  = 0x01,
         FSCERT_INVALID  = 0x02,
-        FSCERT_TRUSTED  = 0x04,
-    //    FSCERT_LOCAL    = 0x08,
         FSCERT_REVOKED  = 0x10,
     }FSCertificateState;
 

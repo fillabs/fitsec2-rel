@@ -171,10 +171,22 @@ extern "C" {
 
     /** Initialize the config structure with default values */
     FITSEC_EXPORT void  FitSecConfig_InitDefault(FitSecConfig * cfg);
-    FITSEC_EXPORT const FitSecAppProfile* FitSecConfig_FindProfile(const FitSecConfig* cfg, FSItsAid aid);
     FITSEC_EXPORT const FitSecConfig* FitSec_GetConfig(const FitSec * e);
+
+    /** Find the profile information for the given ITS AID*/
+    FITSEC_EXPORT const FitSecAppProfile* FitSecConfig_FindProfile(const FitSecConfig* cfg, FSItsAid aid);
+
     /** Create and initialize engine */
     FITSEC_EXPORT FitSec * FitSec_New(const FitSecConfig * config, const char * const name);
+
+    /** Cleanup all data, forget all foreign certificates, 
+        clean all local certificates if clean_local flag is set */
+    FITSEC_EXPORT void FitSec_Clean(FitSec * e);
+    
+    /** Cleanup engine and free all allocated memory */
+    FITSEC_EXPORT void FitSec_Free(FitSec * e);
+    
+    /** Get the engine name. This name is used for loggong only. */
     FITSEC_EXPORT const char * FitSec_Name(const FitSec * e);
     
     /** Install certificate (root, AA, local AT pseudonymes, any other)
@@ -191,7 +203,7 @@ extern "C" {
      *  @param ekey         The encryption private key.fitsec.
      *                      Optional for AT certificates. Must be NULL for other types.
      *  @param ekey_length  The size of the key
-     *  @perror             The status of the procedure. See fitsec_error.h.
+     *  @param perror       The status of the procedure. See fitsec_error.h.
      *  @return             The certificate structure or NULL if certificate is not installed.
      */
     FITSEC_EXPORT const FSCertificate * FitSec_InstallCertificate(FitSec * e,
@@ -205,20 +217,20 @@ extern "C" {
      *  Install any kind of certificates: AA, AT, EC, EA, Root, etc.
      *  @param e            The FitSec engine
      *  @param cert         The previously loaded certificate
-     *  @perror             The status of the procedure. See fitsec_error.h.
+     *  @param perror       The status of the procedure. See fitsec_error.h.
      *  @return             The certificate structure.
      */
     FITSEC_EXPORT const FSCertificate* FitSec_InstallFSCertificate(FitSec* e,
         FSCertificate* cert,
-        int* p_error);
+        int* perror);
 
     /** This function must be called once after instalaion of all certificates to
         relink all issuers and validate all installed certificates.
-    */
+        (The funsion is deprecated and doesn't make anything. )
     FITSEC_EXPORT void FitSec_RelinkCertificates(FitSec * e);
+    */
 
-    /**
-     * @brief Return currently used certificate associated with the application
+    /** Returns currently used certificate associated with the application
      * @param aid The aplication ID.
      * @return The current application certificate  
      */
@@ -238,11 +250,13 @@ extern "C" {
      * 
      * @param e The FitSec engine
      * @param m The parsed message.
-     * @param curTime The current ITS time. Needs to drop out stored requests. 
      * @return true if function made some changes.
      * 
      * @note Do not forget to call @see FitSec_RevalidateCertificates when one of the
      * calls to this function returns true.
+     * 
+     * @note The generationTime field of the 'm' must be set to the current time for
+     * dropping out storred requests.
      */
     FITSEC_EXPORT bool FitSec_ApplyTrustInformationMessage(FitSec* e, FSMessageInfo * m);
     
@@ -252,7 +266,7 @@ extern "C" {
      * The function parse message from the given buffer, and call the @see FitSec_ApplyTrustInformationMessage
      * 
      * @param e The FitSec engine
-     * @param curTime The current ITS time. Needs to drop out stored requests. 
+     * @param curTime The current ITS time. Needs for dropping out stored requests. 
      * @param data The message buffer
      * @param len Buffer size
      * @return Error code or zero on success.
@@ -264,7 +278,7 @@ extern "C" {
 
     /** Revoke certificate with given ID.
         The certificate (if found) will be marked as revoked.
-        @ref FitSec_RelinkCertificates shall be called after the serie of revokations.
+        @ref FitSec_RevalidateCertificates shall be called after the serie of revokations.
         @return true if certificate was found and successfully revoked
     */
     FITSEC_EXPORT bool FitSec_RevokeCertificateId(FitSec* e, FSHashedId8 digest);
@@ -276,6 +290,7 @@ extern "C" {
      * */
     FITSEC_EXPORT void FitSec_RevalidateCertificates(FitSec* e);
 
+    /** Call user callback to update expired trust information (CRL and/or CTL). */
     FITSEC_EXPORT void FitSec_RequestTrustInfo(FitSec* e, FSTime32 curTime);
 
     /*******************************************************************************************/
@@ -301,12 +316,37 @@ extern "C" {
         @return the certificate name
     */
     FITSEC_EXPORT const char *          FitSec_CertificateName(const FSCertificate *);
+
+    /** Sets the subject name of the certificate for debuging purposes
+        @return the new certificate name
+    */
     FITSEC_EXPORT const char *          FitSec_SetCertificateName(const FSCertificate *, const char * name);
 
-    /** Return the state of the certificate
+    /** Return the state of the certificate: FS_CERT_TRUSED, FS_CERT_INVALID or 0 if unknown
         @return the certificate state
     */
     FITSEC_EXPORT uint32_t              FitSec_CertificateState(const FSCertificate* c);
+
+    /** Find a local certificate conformed to request conditions.
+     *   @param e        pointer to the FitSec engine
+     *   @param aidssp   the identifier of the application and SSP bitmask defining the actual message content.
+     *   @param position the current geographic position. Can be NULL to skip this restriction.
+     *   @param time     the current time. Can be 0 to skip this restriction.
+     *   @param error    will be set to nonzero value if error occured.
+     * 
+     *   NOTE: This function will never trigger the ID changing process.
+     */
+    FITSEC_EXPORT FSCertificate *  FitSec_SelectATCertificate(FitSec * e, const FSItsAidSsp * appssp, const FSLocation * position, FSTime64 time, int* perror);
+
+    /** Find an authority certificate, which is able to issue the end entity certificate, conformed to request conditions.
+     *   @param e         pointer to the FitSec engine
+     *   @param aidssp    the identifier of the application and SSP bitmask defining the actual message content.
+     *   @param region    the geographic region. Can be NULL to skip this restriction.
+     *   @param startTime the time when certificate validity is started.
+     *   @param endTime   the time when certificate validity is ended.
+     *   @param error     will be set to nonzero value if error occured.
+     */
+    FITSEC_EXPORT FSCertificate *  FitSec_SelectCACertificate(FitSec * e, const FSItsAidSsp * appssp, const FSItsAidSsp * issuessp, const FSGeoRegion * region, FSTime64 startTime, FSTime64 endTime, int* perror);
 
     /** Select certificate to be used as current pseudonym.
      *  Function doesn't validate the certificate. 
@@ -319,22 +359,18 @@ extern "C" {
      */
     FITSEC_EXPORT FSCertificate * FitSec_Select(FitSec * e, FSItsAid aid, FSHashedId8 cert_id);
 
-    FITSEC_EXPORT FSCertificate *  FitSec_SelectATCertificate(FitSec * e, const FSItsAidSsp * appssp, const FSLocation * position, FSTime64 time, int* perror);
-    FITSEC_EXPORT FSCertificate *  FitSec_SelectCACertificate(FitSec * e, const FSItsAidSsp * appssp, const FSItsAidSsp * issuessp, const FSGeoRegion * region, FSTime64 startTime, FSTime64 endTime, int* perror);
-
     /** Request for Pseudonym change.
-     *  Change the pseudonym for any suitable pseudonym or enqueue this change.
-     *  The OnEvent callback will be called one or more times with following events:
+     *  Change the pseudonym for any suitable pseudonym or enqueue this procedure if the application is locked now.
+     *  The OnEvent callback will be called twice with following events:
      *     * FSEventChangeId  - Before the change procedure;
      *     * FSEventIdChanged - After the procedure. 
-     *                          This can be called later if ID change is locked for the application
+     *                          This can be called later if ID change is currently locked for the application
      *   @param e        Pointer to the FitSec engine
      *   @param aid      The requested certificate must permit this application.
      *                   Use FITSEC_AID_ANY to change ID for all application.
      *   @param curTime  The current ITS timestamp.
      *   @param position The current position.
      * 
-     *   NOTE: This function may trigger the Id changing process.
      */
     FITSEC_EXPORT FSHashedId8 FitSec_ChangeId(FitSec* e, FSItsAid aid, FSTime64 curTime, const FSLocation * const position);
 
@@ -349,17 +385,9 @@ extern "C" {
      */
     FITSEC_EXPORT bool FitSec_LockIdChange(FitSec* e, FSItsAid aid, bool lock);
 
-    /** Cleanup all data, forget all foreign certificates, 
-        clean all local certificates if clean_local flag is set */
-    FITSEC_EXPORT void FitSec_Clean(FitSec * e);
-    
-    /** Cleanup engine and free all allocated memory */
-    FITSEC_EXPORT void FitSec_Free(FitSec * e);
-
     /** Returns the message corresponding to the error value */
     FITSEC_EXPORT const char * FitSec_ErrorMessage(int err);
-    FITSEC_EXPORT const char* FitSec_ErrorMessageBuf(int err, char* const buf, size_t bsize);
-
+    FITSEC_EXPORT const char * FitSec_ErrorMessageBuf(int err, char* const buf, size_t bsize);
 
     typedef enum {
         FS_SI_UNKNOWN = 0,
@@ -409,13 +437,6 @@ extern "C" {
                     FSHashedId8       pskId;          ///< Symmetric encryption key id
                 }symm;
             }encryption;
-/*
-            union{                                ///< shortcut for certificate or keys
-                FSCertificate   * cert;
-                FSPublicKey     * pub;
-                FSPrivateKey    * priv;
-            };
-*/
         };
 
         /// @internal
