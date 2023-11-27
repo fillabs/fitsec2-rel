@@ -336,7 +336,7 @@ extern "C" {
      * 
      *   NOTE: This function will never trigger the ID changing process.
      */
-    FITSEC_EXPORT FSCertificate *  FitSec_SelectATCertificate(FitSec * e, const FSItsAidSsp * appssp, const FSLocation * position, FSTime64 time, int* perror);
+    FITSEC_EXPORT FSCertificate *  FitSec_SelectEECertificate(FitSec * e, const FSItsAidSsp * appssp, const FSLocation * position, FSTime64 time, int* perror);
 
     /** Find an authority certificate, which is able to issue the end entity certificate, conformed to request conditions.
      *   @param e         pointer to the FitSec engine
@@ -440,7 +440,7 @@ extern "C" {
         };
 
         /// @internal
-        uint32_t              flags;
+        uint32_t              _flags;
         void *_ptrs[10];
         /// @endinternal
     };
@@ -494,9 +494,22 @@ extern "C" {
      *   The FSMessageInfo structure DOESN'T own the memory buffer.
      */
     FITSEC_EXPORT FSMessageInfo* FSMessageInfo_AllocateWithBuffer(void * const buf, size_t bufSize);
+    
+    /** Allocate buffer for the message info structure
+     *  Do not forget to free the buffer calling this function with 0 size
+     *  FSMessageInfo_Free will delete buffer automatically
+     */
+    FITSEC_EXPORT FSMessageInfo * FSMessageInfo_AllocateBuffer(FSMessageInfo * m, size_t allocSize);
+
     /** Free the FSMessageInfo structure and (optionally) the message buffer.
      */
     FITSEC_EXPORT void FSMessageInfo_Free(FSMessageInfo*);
+
+    /** Copy content of 1 message info structure into another.
+     *  Buffer data is also copied.
+     *  to->messageSize shall be more or equal to the from->messageSize.
+     */
+    FITSEC_EXPORT size_t FSMessageInfo_CopyWithBuffer(FSMessageInfo * to, const FSMessageInfo * from);
 
     /** Swap buffers of 2 FSMessageInfo structures.
      * The buffer ownership is also swapped

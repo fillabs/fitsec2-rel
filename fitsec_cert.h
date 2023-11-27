@@ -90,7 +90,11 @@ extern "C" {
     FITSEC_EXPORT bool           FSCertificate_DeleteDC(FSCertificate* c, const char* url, size_t urllength);
     FITSEC_EXPORT bool           FSCertificate_SelectNextDC(FSCertificate* c);
 
+    FITSEC_EXPORT void *         FSCertificate_GetLastRequest(FSCertificate* c);
+    FITSEC_EXPORT void *         FSCertificate_SetLastRequest(FSCertificate* c, void * m);
+
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif // fitsec_cert_h

@@ -23,6 +23,9 @@
 #define FS_CREQ_SSP_CA_REQ    0x02
 
 #define DEFAULT_REQ_STORAGE_DURATION 30 // 30 sec is more than enough
+#define DEFAULT_EC_REQUEST_REPETITION_COUNT 2
+#define DEFAULT_EC_REQUEST_REPETITION_TTL   120 // 2 minutes 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,7 +37,8 @@ extern "C" {
             FSCurve         alg;
             const uint8_t * priv;
         }station;
-        uint32_t            reqStorageDuration;
+        bool                repetition;
+        uint32_t            reqStorageDuration; // seconds to store sent requests
     } FitSecPkiConfig;
 
     typedef struct FitSecPki {
@@ -86,7 +90,7 @@ typedef struct FSCertificateParams
 
 }FSCertificateParams;
 
-FITSEC_EXPORT size_t FitSecPki_PrepareATRequest(FitSecPki* param, const FSCertificateParams* params, FSMessageInfo * m);
+FITSEC_EXPORT size_t FitSecPki_PrepareATRequest(FitSecPki* pki, const FSCertificateParams* params, FSMessageInfo * m);
 
 FITSEC_EXPORT size_t FitSecPki_PrepareECRequest(FitSecPki* pki, const FSCertificateParams * params, FSMessageInfo * m);
 
