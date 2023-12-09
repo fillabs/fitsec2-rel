@@ -14,7 +14,7 @@ The library implements following specifications:
 The library can be used with any kind of communication protocol, particularly with the GeoNetworking as described in
 [ETSI EN 302 636-4-1](http://www.etsi.org/deliver/etsi_en/302600_302699/3026360401/01.02.01_60/en_3026360401v010201p.pdf).
 
-The library is written in plain C in cross-platform manner and has been compiled and tested in Linux(gcc) and Windows(mingw32,cygwin and Visual C 13) environments for x86 and ARM platforms.
+The library is written in plain C in cross-platform manner and has been compiled and tested in Linux(gcc) and Windows(mingw32,cygwin and Visual C 14) environments for x86 and ARM platforms.
 The x86 Linux and Windows binaries with some limitations provided for testing purposes.
 
 ## Dependencies ##
@@ -39,27 +39,26 @@ The _FitSecConfig_ contains the following configuration fields:
 - __`appProfiles`__ - application profiles list, contains the array of type __`FitSecAppProfile`__. Each profile provides information for the outgoing message content and contains the following fields:
   - __`aid`__ - the ITS AID for the profile.
   - __`payloadType`__ - the message payload type to be used for outgoing messages
-  - __`fields`__ - bitmap of necessary fields to be set in outgoing messages. See __`FitSecAppProfileFlags`__ for details.
+  - __`fields`__ - bitmap of necessary fields to be set in outgoing messages. See _`FitSecAppProfileFlags`_ for details.
   - __`certPeriod`__ - period in milliseconds when certificate shall be sent within the application message. Special values are:
     - `-1` - do not send any certificates and sign all messages using digest
     - `0` - send certificates within each outgoing message
-    - use some positive value to send certificate each time in this period after the previous message containing certificate. For example, set to 1000 to send certificate each second (default for CAM).
+    - use some positive value to send certificate in this time period after the previous message with certificate. For example set to 1000 to send certificate each second (default for CAM)
   - __`certChangePeriod`__ - the maximum duration when the AT certificate can be used before been changed to another one.
-- __`encKeyStorageDuration`__ period in seconds when system keeps previously used symmetric key for decrypting incoming messages.
-- __`storeTrustInformation`__ call user call-back to store received CA certificates, CRLs and CTLs.
+- __`encKeyStorageDuration`__ period in seconds when system keeps previously used symmetric key for decrypting incomming messages.
+-__`storeTrustInformation`__ call user call-back to store received CA certificates, CRLs and CTLs.
 
 Crypto engines:<br/>
-The library provides a flexibility for using different crypto engines for different purposes. Crypto engines are referenced by their names. Two crypto engines are supported now: `openssl` and `atlk` (AutoTalk HSM library). Please have a look on cryptographic plugin definition in fscrypt header _fscrypt_plugin.h_.
-
-- __`hashEngine`__ the crypto engine used for hash functions. Currently "openssl" and "atlk" are supported, set to NULL for autoselect.
-- __`signEngine`__ the crypto engine for signing: "openssl", "atlk"
-- __`verifyEngine`__ the crypto engine for signature verification: "openssl", "atlk"
-- __`encryptEngine`__ the crypto engine for EC encrypting engine: "openssl", "atlk"
-- __`decryptEngine`__ the crypto engine for EC decryption: "openssl", "atlk"
-- __`symmEncryptEngine`__ the crypto engine for symmetric encryption: "openssl", "atlk"
-- __`symmDecryptEngine`__ the crypto engine for symmetric decryption: "openssl", "atlk"
-- __`macEngine`__ the crypto engine for MAC calculation: "openssl", "atlk"
-- __`randomEngine`__ the crypto engine for random function: "openssl", "atlk"
+The library provides a flexibility for using different crypto engines for different purposes. Crypto engines are referenced by their names. Two crypto engines are supported now: `openssl` and `atlk` (AutoTalk HSM library). Please have a look on cryptographic plugin definition in _fitsec_crypt_plugin.h_ and _fitsec_hash_plugin.h_.
+- __`hashEngine`__ the crypto engine used for hash functions. currently "openssl" and "atlk" are supported, set to NULL for autoselect
+- __`signEngine`__ the crypto engine for signing: "openssl", "atlk", NULL by default
+- __`verifyEngine`__ the crypto engine for sugnature verification: "openssl", "atlk", NULL by default
+- __`encryptEngine`__ the crypto engine for EC encrypting engine: "openssl", "atlk", NULL by default
+- __`decryptEngine`__ the crypto engine for EC decryption: "openssl", "atlk", NULL by default
+- __`symmEncryptEngine`__ the crypto engine for symmetric encryption: "openssl", "atlk", NULL by default
+- __`symmDecryptEngine`__ the crypto engine for symmetric decryption: "openssl", "atlk", NULL by default
+- __`macEngine`__ the crypto engine for MAC calculatoin: "openssl", "atlk", NULL by default
+- __`randomEngine`__ the crypto engine for random function: "openssl", "atlk", NULL by default
 
 Callbacks:<br/>
 The library has two work modes: synchronous and asynchronous. In asynchronous mode the library interacts with the upper level using the set of callback functions. These callbacks are defined in the configuration structure:       
@@ -72,8 +71,8 @@ The library has two work modes: synchronous and asynchronous. In asynchronous mo
 
 Certificate pool parameters:<br/>
 - __`maxReceivedPoolSize`__ maximum size of the pool for AT certificates, installed in the system. 
-- __`maxReceivedLifeTime`__ maximum lifetime of received AT certificates.
-- __`purgePeriod`__ period in seconds when certificate pools must be purged. Set to 0 to do not purge at all. In this case two previous parameters don’t make any sense.
+- __`maxReceivedLifeTime`__ maximum life time of received AT certificates.
+- __`purgePeriod`__ period in seconds when certificate pools must be purged. Set to 0 to do not purge at all. In this case two previous parameters doesn't make any sense.
 - __`ctlCheckPeriod`__ period in seconds when the engine shall check for new CTLs. Shall be at least 24h for real usage.
 - __`crlCheckPeriod`__ period in seconds when the engine shall check for new CRLs. Shall be at least 24h for real usage.
 
@@ -143,6 +142,7 @@ The function returns the offset in the buffer to copy the payload or 0 if case o
 Please see the [_fitsec.h_](fitsec.h) for function descriptions.
 
 #### Preparing of payload ####
+
 The GeoNetworking layer needs to create the Common Header and, optionally the Extended Header elements, and to put the facility layer payload into the outgoing buffer.
 
 The total length of these elements shall be set in the payload size field in the message information structure.
