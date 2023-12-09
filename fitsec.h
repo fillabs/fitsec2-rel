@@ -327,7 +327,7 @@ extern "C" {
     */
     FITSEC_EXPORT uint32_t              FitSec_CertificateState(const FSCertificate* c);
 
-    /** Find a local certificate conformed to request conditions.
+    /** Find a local end entity certificate conformed to request conditions.
      *   @param e        pointer to the FitSec engine
      *   @param aidssp   the identifier of the application and SSP bitmask defining the actual message content.
      *   @param position the current geographic position. Can be NULL to skip this restriction.
@@ -490,6 +490,7 @@ extern "C" {
 
     /** Allocate the FSMessageInfo structure and the message buffer  of given size */
     FITSEC_EXPORT FSMessageInfo* FSMessageInfo_Allocate(size_t maxBufSize);
+    
     /** Allocate the FSMessageInfo structure and associate it with the given buffer.
      *   The FSMessageInfo structure DOESN'T own the memory buffer.
      */

@@ -52,30 +52,40 @@ extern "C" {
         FSCERT_REVOKED  = 0x10,
     }FSCertificateState;
 
-    FITSEC_EXPORT uint32_t           FSCertificate_GetState(const FSCertificate* c);
-    FITSEC_EXPORT void               FSCertificate_SetState(FSCertificate* c, uint32_t set, uint32_t remove);
+    FITSEC_EXPORT
+    uint32_t           FSCertificate_GetState(const FSCertificate* c);
+    FITSEC_EXPORT
+    void               FSCertificate_SetState(FSCertificate* c, uint32_t set, uint32_t remove);
 
     typedef struct FSGeoRegion FSGeoRegion;
     
-    FITSEC_EXPORT const FSItsAidSsp* FSCertificate_GetAppPermissions(const FSCertificate* c, FSItsAid aid);
+    FITSEC_EXPORT
+    const FSItsAidSsp* FSCertificate_GetAppPermissions(const FSCertificate* c, FSItsAid aid);
 
+    FITSEC_EXPORT
     const FSPublicKey* FSCertificate_GetVerificationKey(const FSCertificate* c);
+    FITSEC_EXPORT
     const FSPublicKey* FSCertificate_GetEncryptionKey(const FSCertificate* c);
+    FITSEC_EXPORT
     bool               FSCertificate_SetEncryptionPrivateKey(FSCertificate * c, FSPrivateKey * key);
+    FITSEC_EXPORT
     bool               FSCertificate_SetVerificationPrivateKey(FSCertificate * c, FSPrivateKey * key);
 
     // load certificate from the buffer
     // does not perform any validation
-    FITSEC_EXPORT size_t         FSCertificate_Load(FSCertificate* c, const char* const ptr, size_t len, int* const perror);
-    FN_THROW(RuntimeException)
-    FITSEC_EXPORT void           FSCertificate_Read(FSCertificate * c, const char** const ptr, const char* const end, int error);
+    FITSEC_EXPORT
+    size_t         FSCertificate_Load(FSCertificate* c, const char* const ptr, size_t len, int* const perror);
+    FITSEC_EXPORT FN_THROW(RuntimeException)
+    void           FSCertificate_Read(FSCertificate * c, const char** const ptr, const char* const end, int error);
 
     // validate the certificate against its signer
-    FITSEC_EXPORT bool           FSCertificate_Validate(FSCertificate* c, int * const perror);
+    FITSEC_EXPORT
+    bool           FSCertificate_Validate(FSCertificate* c, int * const perror);
     
     // validate the certificate chain until the first occurence of already validated certificate.
     // check the chain for revoked certificates
-    FITSEC_EXPORT bool           FSCertificate_ValidateChain(FSCertificate* c, int* error);
+    FITSEC_EXPORT
+    bool           FSCertificate_ValidateChain(FSCertificate* c, int* error);
 
     FITSEC_EXPORT bool           FSCertificate_IsValidForTime(const FSCertificate* c, FSTime64 time, int* const perror);
     FITSEC_EXPORT bool           FSCertificate_IsValidForPosition(const FSCertificate* c, const FSLocation* position, int* const perror);

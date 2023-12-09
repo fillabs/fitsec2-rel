@@ -26,6 +26,18 @@
 #define DEFAULT_EC_REQUEST_REPETITION_COUNT 2
 #define DEFAULT_EC_REQUEST_REPETITION_TTL   120 // 2 minutes 
 
+#ifndef FSPKI_EXPORT
+# ifdef _MSC_VER
+#  ifdef LIBFSPKI_EXPORTS
+#   define FSPKI_EXPORT __declspec(dllexport)
+#  else
+#   define FSPKI_EXPORT __declspec(dllimport)
+#  endif
+# else
+#  define FSPKI_EXPORT
+# endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,8 +58,8 @@ extern "C" {
         const FitSecPkiConfig * cfg;
     }FitSecPki;
 
-    FITSEC_EXPORT FitSecPki * FitSecPki_New(FitSec * e, const FitSecPkiConfig * cfg);
-    FITSEC_EXPORT void        FitSecPki_Free(FitSecPki * const pki);
+FSPKI_EXPORT FitSecPki * FitSecPki_New(FitSec * e, const FitSecPkiConfig * cfg);
+FSPKI_EXPORT void        FitSecPki_Free(FitSecPki * const pki);
 
 /** Load PKI message from the given buffer.
  *  Each PKI message is an IEEE1609Dot2Data signed message containing PKI related payload.
@@ -58,7 +70,7 @@ extern "C" {
  *  @param buflen  [In]  The message buffer length.
  *  @return        error value or 0 siccess
  */
-FITSEC_EXPORT int FitSecPki_loadData(FitSecPki* pki, const void* buf, size_t buflen);
+FSPKI_EXPORT int FitSecPki_loadData(FitSecPki* pki, const void* buf, size_t buflen);
 
 /** Apply the already parsed and validated PKI responds.
  *  @param e       [In]  The engine
@@ -72,7 +84,7 @@ FITSEC_EXPORT int FitSecPki_loadData(FitSecPki* pki, const void* buf, size_t buf
  *  payloadSize    | in: the size of the payload
  *  cert           | in: the certificate been used to sign message
  */
-FITSEC_EXPORT bool FitSecPki_loadMessage(FitSecPki* pki, FSMessageInfo* m);
+FSPKI_EXPORT bool FitSecPki_loadMessage(FitSecPki* pki, FSMessageInfo* m);
 
 typedef struct FSCertificateParams
 {
@@ -90,9 +102,9 @@ typedef struct FSCertificateParams
 
 }FSCertificateParams;
 
-FITSEC_EXPORT size_t FitSecPki_PrepareATRequest(FitSecPki* pki, const FSCertificateParams* params, FSMessageInfo * m);
+FSPKI_EXPORT size_t FitSecPki_PrepareATRequest(FitSecPki* pki, const FSCertificateParams* params, FSMessageInfo * m);
 
-FITSEC_EXPORT size_t FitSecPki_PrepareECRequest(FitSecPki* pki, const FSCertificateParams * params, FSMessageInfo * m);
+FSPKI_EXPORT size_t FitSecPki_PrepareECRequest(FitSecPki* pki, const FSCertificateParams * params, FSMessageInfo * m);
 
 #ifdef __cplusplus
 }

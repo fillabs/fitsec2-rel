@@ -13,7 +13,9 @@
 #define FITSEC_TIME_H
 
 #include <time.h>
+#ifndef _MSC_VER
 #include <sys/time.h>
+#endif
 #include <inttypes.h>
 #include "fitsec_types.h"
 #ifdef __cplusplus
@@ -72,8 +74,8 @@ extern "C" {
 		__dt_max
 	}duration_t;
 
-	uint32_t itstime32_add_duration(uint32_t t, duration_t dt, uint32_t v);
-	uint64_t itstime64_add_duration(uint64_t t, duration_t dt, uint32_t v);
+	FITSEC_EXPORT uint32_t itstime32_add_duration(uint32_t t, duration_t dt, uint32_t v);
+	FITSEC_EXPORT uint64_t itstime64_add_duration(uint64_t t, duration_t dt, uint32_t v);
 
 #ifdef __cplusplus
 }
