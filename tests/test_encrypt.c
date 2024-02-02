@@ -136,8 +136,8 @@ int main(int argc, char** argv)
         FitSec_Free(e[0]);
         return -1;
     }
-    FitSec_RelinkCertificates(e[0]);
-    FitSec_RelinkCertificates(e[1]);
+//    FitSec_RelinkCertificates(e[0]);
+//    FitSec_RelinkCertificates(e[1]);
 
     test_encrypt(e[0], e[1]);
 

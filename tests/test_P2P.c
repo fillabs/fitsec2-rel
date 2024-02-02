@@ -164,8 +164,8 @@ int main(int argc, char** argv)
         FitSec_Free(e[0]);
         return -1;
     }
-    FitSec_RelinkCertificates(e[0]);
-    FitSec_RelinkCertificates(e[1]);
+//    FitSec_RelinkCertificates(e[0]);
+//    FitSec_RelinkCertificates(e[1]);
 
     if (storage3){
         if (0 >= loadCertificates(e[2], _curTime, storage3)) {
@@ -173,7 +173,7 @@ int main(int argc, char** argv)
             FitSec_Free(e[1]);
             return -1;
         }
-        FitSec_RelinkCertificates(e[2]);
+//        FitSec_RelinkCertificates(e[2]);
     }
 
     size_t len;

@@ -620,7 +620,7 @@ int main(int argc, char** argv)
                 printf("\tcan not import private key\n");
             }else{
                 // sign
-                if(!FSSignature_Sign(e, &s, k, _sign_vectors[i].hash, _sign_vectors[i].k)){
+                if(!FSSignature_Sign_ex(e, &s, k, _sign_vectors[i].hash, _sign_vectors[i].k)){
                     printf("\tcan not calculate signature\n");
                 }else{
                     if(cmemcmp(_sign_vectors[i].r, out, fsize)){

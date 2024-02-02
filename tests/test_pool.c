@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 			}
 		}else
 			loadCertificates(e, 0, storage1);
-		FitSec_RelinkCertificates(e);
+//		FitSec_RelinkCertificates(e);
 		FitSec_Clean(e);
 	}
 

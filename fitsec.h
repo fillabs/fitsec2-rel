@@ -290,8 +290,13 @@ extern "C" {
      * */
     FITSEC_EXPORT void FitSec_RevalidateCertificates(FitSec* e);
 
-    /** Call user callback to update expired trust information (CRL and/or CTL). */
-    FITSEC_EXPORT void FitSec_RequestTrustInfo(FitSec* e, FSTime32 curTime);
+    /** Call user callback to update expired trust information (CRL and/or CTL).
+     * @param e The FitSec engine
+     * @param curTime The current ITS time. Needs to decide when to run requests.
+     *                Set to 0 to force CRL/CTL requests.
+     * @param user The user pointer to be passed to the callback
+     */
+    FITSEC_EXPORT void FitSec_RequestTrustInfo(FitSec* e, FSTime32 curTime, void * user);
 
     /*******************************************************************************************/
     /****    Certificate API                                                                ****/

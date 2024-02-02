@@ -78,6 +78,7 @@ static FSHashedId8 _load_data(FitSec * e, FSTime32 curTime, pchar_t * path, pcha
 			else{
 				ekey_len = end - ekey;
 			}
+			errno = 0;
 			const FSCertificate* c =  FitSec_InstallCertificate(e, data, cert_len, vkey, vkey_len, ekey, ekey_len, &error);
 			digest = FitSec_CertificateDigest(c);
 			printf(" [%016"PRIX64"] - %s\n", cint64_hton(digest), error ? FitSec_ErrorMessage(error):"CERT");
@@ -158,12 +159,11 @@ int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path)
 					path[plen++] = '/';
 					while(NULL != (de = readdir(d))){
 						pchar_t * ext = pchar_rchr(de->d_name, '.');
-						if(ext && (
+						if(NULL == ext               ||
 							0 == strcmp(ext, ".oer") || 
 							0 == strcmp(ext, ".crl") || 
 							0 == strcmp(ext, ".ctl") || 
-							0 == strcmp(ext, ".lcr") || 
-							0 == strcmp(ext, ".oer") ) 
+							0 == strcmp(ext, ".lcr") 
 						){
 							pchar_cpy(path + plen, de->d_name);
 							if (0 <= _load_data(e, curTime, path, path + plen)){

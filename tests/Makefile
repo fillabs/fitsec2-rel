@@ -68,14 +68,14 @@ bins           = $(TEST_BIN)
 sources       := $(TEST_BIN).c load_certs.c utils.c
 includes      += . $(FITSEC2) $(PROJECTROOT)/fscrypt
 packages      += openssl cshared
-deps           = $(outdir)/libfitsec2.a
-libs           = $(outdir)/libfitsec2.a -Wl,--whole-archive $(outdir)/libfscrypt.a -Wl,--no-whole-archive -lm -lpthread
+deps           = $(outdir)/libfitsec2.a $(outdir)/libfspki.a
+libs           = $(outdir)/libfspki.a $(outdir)/libfitsec2.a -Wl,--whole-archive $(outdir)/libfscrypt.a -Wl,--no-whole-archive -lm -lpthread
 ifeq (test_pcap, $(TEST_BIN))
  NPCAP_SDK := /cygdrive/c/PROGRA~1/Npcap/sdk
  packages     += pcap
 endif
 
-ifeq (test_ctlcrl, $(TEST_BIN))
+ifneq (,$(strip $(findstring $(TEST_BIN), test_ctlcrl test_pki)))
  packages     += curl
 endif
 

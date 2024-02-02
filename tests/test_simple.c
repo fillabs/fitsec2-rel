@@ -125,8 +125,8 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    FitSec_RelinkCertificates(es);
-    FitSec_RelinkCertificates(er);
+//    FitSec_RelinkCertificates(es);
+//    FitSec_RelinkCertificates(er);
 
     char buf[1024];
 
