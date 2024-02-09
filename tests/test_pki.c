@@ -77,6 +77,7 @@ static const pchar_t * _canKeyPath = NULL;
 static const pchar_t * _stationIdPath = NULL;
 
 static char _o_u[1024];
+static char* _o_out = NULL;
 static char* _o_u_path = NULL;
 static const char* _o_dc = NULL;
 static int _o_force = 0;
@@ -90,6 +91,7 @@ static copt_t options [] = {
     { "O",  "override",      COPT_STR,      &_o_u_path,      "Override hosts of all DC URLs" },
     { "f",  "force",         COPT_BOOL,     &_o_force,       "force all operations" },
 
+    { "o",  "out",           COPT_PATH,     &_o_out,         "Path to store certificates" },
 
     { NULL, NULL, COPT_END, NULL, NULL }
 };
@@ -181,11 +183,48 @@ static bool _onEvent(FitSec* e, void* user, FSEventId event, const FSEventParam*
     }
 
     if(event == FSEvent_CertStatus){
-        fprintf(stderr, "["cPrefixUint64"X]: %s=>%s\n", cint64_hton(FitSec_CertificateDigest(params->certStateChange.certificate)), 
+        FSHashedId8 digest = FitSec_CertificateDigest(params->certStateChange.certificate);
+        fprintf(stderr, "["cPrefixUint64"X]: %s=>%s\n", cint64_hton(digest), 
                                                        _CERT_STATE_NAME[params->certStateChange.from&3],_CERT_STATE_NAME[params->certStateChange.to&3]);
+        
+        if(_o_out){
+            const char * dir = "";
+            if(params->certStateChange.to == FSCERT_INVALID){
+                dir = "invalid/";
+            }
+            size_t len;
+            const char * d = FitSec_CertificateBuffer(params->certStateChange.certificate, &len);
+            if(d){
+                char * e = cstrend(_o_out);
+                sprintf(e, "/%s"cPrefixUint64"X.oer", dir,cint64_hton(digest));
+                if (cstrnsave(d, len, _o_out)){
+                    fprintf(stderr, "["cPrefixUint64"X]: stored as %s [%ld bytes]\n", cint64_hton(digest), _o_out, len);
+                }else{
+                    fprintf(stderr, "["cPrefixUint64"X]: failed to store as %s\n", cint64_hton(digest), _o_out);
+                }
+                *e = 0;
+            }
+        }
         if(_o_dc){
             if(params->certStateChange.to == FSCERT_TRUSTED){
                 FSCertificate_SetDC(params->certStateChange.certificate, _o_dc, 0);
+            }
+        }
+
+        return true;
+    }
+    
+    if(event == FSEvent_StoreData){
+        if(_o_out){
+            if(params->store.type == FSDT_CERTIFICATE){
+                char * e = cstrend(_o_out);
+                sprintf(e, "/"cPrefixUint64"X.oer", cint64_hton(params->store.id));
+                if (cstrnsave(params->store.data, params->store.len, _o_out)){
+                    fprintf(stderr, "["cPrefixUint64"X]: stored as %s\n", cint64_hton(params->store.id), _o_out);
+                }else{
+                    fprintf(stderr, "["cPrefixUint64"X]: failed to store as %s\n", cint64_hton(params->store.id), _o_out);
+                }
+                *e = 0;
             }
         }
     }
@@ -219,6 +258,11 @@ int main(int argc, char** argv)
     if(_o_u_path){
         strncpy(_o_u, _o_u_path, sizeof(_o_u));
         _o_u_path = cstrend(_o_u);
+    }
+
+    if(_o_out){
+        _o_out = cstrdups(_o_out, 32);
+        cfg.storeTrustInformation = 1;
     }
 
     if(_curStrTime){
@@ -274,11 +318,29 @@ int main(int argc, char** argv)
         .generationTime = ((uint64_t)_curTime) * 1000000
     };
     FSMessageInfo_SetBuffer(&m, buf, 65536);
-    FSCertificateParams cert_params = {
+    FSCertificateParams ec_params = {
         .vKeyAlg = FS_NISTP256,
         .eKeyAlg = -1,
+        .startTime = _curTime,
+        .duration = 168,
+        .durationType = dt_hours,
         .appPermissions = {
-            {FITSEC_AID_CAM,  1, {{ 0x00000001 }}},
+//            {FITSEC_AID_CAM,      3, {.bits={1}}},
+//            {FITSEC_AID_DENM,     4, {.bits={1}}},
+            {FITSEC_AID_CRT_REQ,  2, {.bits={0x01, {0xC0}}}},
+            {0}
+        }
+    };
+
+    FSCertificateParams at_params = {
+        .vKeyAlg = FS_NISTP256,
+        .eKeyAlg = -1,
+        .startTime = _curTime,
+        .duration = 20,
+        .durationType = dt_hours,
+        .appPermissions = {
+            {FITSEC_AID_CAM,      3, {.bits={1}}},
+            {FITSEC_AID_DENM,     4, {.bits={1}}},
             {0}
         }
     };
@@ -299,15 +361,15 @@ int main(int argc, char** argv)
         }else{
             size_t rc = 0;
             if(cstrequal("enrol", argv[i])){
-                rc = FitSecPki_PrepareECRequest(pki, &cert_params, &m);
+                rc = FitSecPki_PrepareECRequest(pki, &ec_params, &m);
                 if(rc == 0){
                     fprintf(stderr, "Enrollment error: %s\n", FitSec_ErrorMessage(m.status));
                     continue;
                 }
             }else if(cstrequal("auth", argv[i])){
-                rc = FitSecPki_PrepareATRequest(pki, &cert_params, &m);
+                rc = FitSecPki_PrepareATRequest(pki, &at_params, &m);
                 if(rc == 0){
-                    fprintf(stderr, "Enrollment error: %s\n", FitSec_ErrorMessage(m.status));
+                    fprintf(stderr, "Authorization error: %s\n", FitSec_ErrorMessage(m.status));
                     continue;
                 }
             }

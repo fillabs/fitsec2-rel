@@ -91,7 +91,7 @@ extern "C" {
     FITSEC_EXPORT bool           FSCertificate_IsValidForPosition(const FSCertificate* c, const FSLocation* position, int* const perror);
     FITSEC_EXPORT bool           FSCertificate_IsValidForRegion(const FSCertificate* c, const FSGeoRegion* region, int* const perror);
     FITSEC_EXPORT bool           FSCertificate_IsValidForAppSSP(const FSCertificate* c, const FSItsAidSsp* ssp, int* const perror);
-    FITSEC_EXPORT bool           FSCertificate_IsValidForIssuingSSP(const FSCertificate * c, const FSItsAidSsp * ssp, int chainLength, int * const perror);
+    FITSEC_EXPORT bool           FSCertificate_IsValidForIssuingSSP(const FSCertificate * c, const FSItsAidSsp * ssp, FSEEType eeType, int chainLength, int * const perror);
     FITSEC_EXPORT bool           FSCertificate_IsValidFor(const FSCertificate* c, const FSItsAidSsp* ssp, const FSLocation* position, FSTime64 time, int* const perror);
 
     FITSEC_EXPORT bool           FSCertificate_SetCRLParams(FSCertificate* c, FSTime32 thisUpdate, FSTime32 nextUpdate);

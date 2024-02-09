@@ -332,6 +332,11 @@ extern "C" {
     */
     FITSEC_EXPORT uint32_t              FitSec_CertificateState(const FSCertificate* c);
 
+    /** Return OER representation of the certificate (if was read from OER)
+     * @return pointer to OER buffer or NULL if not (yet) read from buffer
+    */
+    FITSEC_EXPORT const char * FitSec_CertificateBuffer(const FSCertificate * c, size_t * len);
+
     /** Find a local end entity certificate conformed to request conditions.
      *   @param e        pointer to the FitSec engine
      *   @param aidssp   the identifier of the application and SSP bitmask defining the actual message content.
@@ -345,13 +350,24 @@ extern "C" {
 
     /** Find an authority certificate, which is able to issue the end entity certificate, conformed to request conditions.
      *   @param e         pointer to the FitSec engine
-     *   @param aidssp    the identifier of the application and SSP bitmask defining the actual message content.
+     *   @param app       the application ID and SSP defining required CA application permission
+     *                    For ETSI model request for EA shall contain at least 623:0x0104 and for AA - 623:0x0110 
+     *   @param assp      the application ID and SSP defining EE application permissions.
+     *                    For ETSI model request for EA shall contain at least 623:0x0110.
+     *                    Request for AA shall contain AID:SSP for requested applications.
+     *   @param rssp      the application id and SSP defining EE request permissions.
+     *                    Must be set to NULL for ETSI model.
      *   @param region    the geographic region. Can be NULL to skip this restriction.
      *   @param startTime the time when certificate validity is started.
      *   @param endTime   the time when certificate validity is ended.
      *   @param error     will be set to nonzero value if error occured.
      */
-    FITSEC_EXPORT FSCertificate *  FitSec_SelectCACertificate(FitSec * e, const FSItsAidSsp * appssp, const FSItsAidSsp * issuessp, const FSGeoRegion * region, FSTime64 startTime, FSTime64 endTime, int* perror);
+    FITSEC_EXPORT FSCertificate *  FitSec_SelectCACertificate(  FitSec * e, 
+                                                                const FSItsAidSsp * app,  
+                                                                const FSItsAidSsp * assp, const FSItsAidSsp * issp,
+                                                                const FSGeoRegion * region,
+                                                                FSTime64 startTime, FSTime64 endTime,
+                                                                int* perror);
 
     /** Select certificate to be used as current pseudonym.
      *  Function doesn't validate the certificate. 

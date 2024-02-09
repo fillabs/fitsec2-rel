@@ -85,6 +85,12 @@ extern "C" {
         FSItsSsp  sspData;
     } FSItsAidSsp;
 
+    typedef enum {
+        FSEEApplication = 0x80,
+        FSEEEnrollment = 0x40,
+        FSEEAll = 0xC0
+    }FSEEType;
+
     typedef struct FitSec FitSec;
     typedef struct FSCertificate FSCertificate;
     typedef struct FSMessageInfo FSMessageInfo;
