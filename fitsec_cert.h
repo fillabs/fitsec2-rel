@@ -65,7 +65,11 @@ extern "C" {
     FITSEC_EXPORT
     const FSPublicKey* FSCertificate_GetVerificationKey(const FSCertificate* c);
     FITSEC_EXPORT
+    const FSPrivateKey * FSCertificate_GetVerificationPrivateKey(const FSCertificate * c);
+    FITSEC_EXPORT
     const FSPublicKey* FSCertificate_GetEncryptionKey(const FSCertificate* c);
+    FITSEC_EXPORT
+    const FSPrivateKey * FSCertificate_GetEncryptionPrivateKey(const FSCertificate * c);
     FITSEC_EXPORT
     bool               FSCertificate_SetEncryptionPrivateKey(FSCertificate * c, FSPrivateKey * key);
     FITSEC_EXPORT
