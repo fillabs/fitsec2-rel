@@ -24,6 +24,7 @@ by simple request to the author.
 #include "copts.h"
 #include "cstr.h"
 #include "cmem.h"
+#include "clog.h"
 #include "../fitsec_pki.h"
 #include "fitsec.h"
 #include "fitsec_error.h"
@@ -81,8 +82,10 @@ static char* _o_out = NULL;
 static char* _o_u_path = NULL;
 static const char* _o_dc = NULL;
 static int _o_force = 0;
+static int _o_verbose = 0;
 static copt_t options [] = {
     { "h?", "help",          COPT_HELP,     NULL,            "Print this help page"},
+    { "v",  "verbose",       COPT_BOOL,     &_o_verbose,     "be verbose"},
     { "C",  "config",        COPT_CFGFILE,  &cfgfile,        "Config file"         },
     { "t",  "time",          COPT_STR,      &_curStrTime,    "The ISO representation of starting time" },
     { "K",  "canonical-key", COPT_PATH,     &_canKeyPath,    "Canonical private key path" },
@@ -195,14 +198,39 @@ static bool _onEvent(FitSec* e, void* user, FSEventId event, const FSEventParam*
             size_t len;
             const char * d = FitSec_CertificateBuffer(params->certStateChange.certificate, &len);
             if(d){
-                char * e = cstrend(_o_out);
-                sprintf(e, "/%s"cPrefixUint64"X.oer", dir,cint64_hton(digest));
+                char * end = cstrend(_o_out);
+                sprintf(end, "/%s"cPrefixUint64"X.oer", dir,cint64_hton(digest));
                 if (cstrnsave(d, len, _o_out)){
                     fprintf(stderr, "["cPrefixUint64"X]: stored as %s [%ld bytes]\n", cint64_hton(digest), _o_out, len);
                 }else{
                     fprintf(stderr, "["cPrefixUint64"X]: failed to store as %s\n", cint64_hton(digest), _o_out);
                 }
-                *e = 0;
+                pchar_t * ext = cstrpathextension(_o_out);
+                FSCrypt * ce = FSCrypt_FindEngine(FitSec_GetConfig(e)->signEngine);
+                if(ce){
+                    const FSPrivateKey * k = FSCertificate_GetVerificationPrivateKey(params->certStateChange.certificate);
+                    if(k){
+                        uint8_t buf[256];
+                        size_t len = FSKey_ExportPrivate(ce, k, buf);
+                        if(len){
+                            strcpy(ext, ".vkey");
+                            cstrnsave((const char*)buf, len, _o_out);
+                        }
+                    }
+                }
+                ce = FSCrypt_FindEngine(FitSec_GetConfig(e)->encryptEngine);
+                if(ce){
+                    const FSPrivateKey * k = FSCertificate_GetEncryptionPrivateKey(params->certStateChange.certificate);
+                    if(k){
+                        uint8_t buf[256];
+                        size_t len = FSKey_ExportPrivate(ce, k, buf);
+                        if(len){
+                            strcpy(ext, ".ekey");
+                            cstrnsave((const char*)buf, len, _o_out);
+                        }
+                    }
+                }
+                *end = 0;
             }
         }
         if(_o_dc){
@@ -258,6 +286,10 @@ int main(int argc, char** argv)
     if(_o_u_path){
         strncpy(_o_u, _o_u_path, sizeof(_o_u));
         _o_u_path = cstrend(_o_u);
+    }
+
+    if(_o_verbose){
+        clog_set_level(0, CLOG_DEBUG);
     }
 
     if(_o_out){

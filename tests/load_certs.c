@@ -148,7 +148,7 @@ int loadCertificates(FitSec * e, FSTime32 curTime, const pchar_t * _path)
 		struct stat st;
 		if(0 == stat(path, &st)){
 			if (S_ISREG(st.st_mode)) {
-				if (0 <= _load_data(e, curTime, path, path + plen)) {
+				if (0 <= _load_data(e, curTime, path, (pchar_t*)cstrlastpathelement(path))) {
 					ccount++;
 				}
 			}else if (S_ISDIR(st.st_mode)) {
