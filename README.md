@@ -17,6 +17,8 @@ The library can be used with any kind of communication protocol, particularly wi
 The library is written in plain C in cross-platform manner and has been compiled and tested in Linux(gcc) and Windows(mingw32,cygwin and Visual C 14) environments for x86 and ARM platforms.
 The x86 Linux and Windows binaries with some limitations provided for testing purposes.
 
+Try the library using the ITS message simulator: https://github.com/fillabs/fsmsggen
+
 ## Dependencies ##
 Dependencies are collected using git submodules:
 - [cshared](https://www.github.com/fillabs/cshared/) - The open-source library providing various utility functions
