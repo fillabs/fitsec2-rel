@@ -24,6 +24,7 @@ by simple request to the author.
 #include "copts.h"
 #include "cstr.h"
 #include "cmem.h"
+#include "clog.h"
 #include "fitsec.h"
 #include "fitsec_error.h"
 #include "fitsec_time.h"
@@ -54,6 +55,7 @@ static int _request = 0;
 
 static char _o_u[1024];
 static char* _o_u_path = NULL;
+static char* _o_ctlSeries = NULL;
 
 static copt_t options [] = {
     { "h?", "help",          COPT_HELP,     NULL,            "Print this help page"},
@@ -62,6 +64,8 @@ static copt_t options [] = {
     { "S",  "store",         COPT_PATH,     &_storage,       "Save received data in this location" },
     { "i",  "request",       COPT_BOOL,     &_request,       "Request CTL/CRL information if necessary" },
     { "D",  "dc",            COPT_STR,      &_o_u_path,      "Override all DC URLs" },
+
+    { NULL, "ctlseries",     COPT_STR,      &_o_ctlSeries,   "IEEE SCMS CTL series ID (hex)"},
 
     { NULL, NULL, COPT_END, NULL, NULL }
 };
@@ -152,6 +156,8 @@ int main(int argc, char** argv)
 {
     FitSec* e = NULL;
 
+    clog_set_level(0, CLOG_DEBUG);
+    
     FitSecConfig_InitDefault(&cfg);
 
     int flags = COPT_DEFAULT | COPT_NOERR_UNKNOWN | COPT_NOAUTOHELP;
@@ -178,6 +184,14 @@ int main(int argc, char** argv)
     if(_o_u_path){
         _o_u_path = cstrcpy(_o_u, _o_u_path);
     }
+    if(_o_ctlSeries){
+        if( 16 != strlen(_o_ctlSeries) || 
+            NULL == cstr_hex2bin((char*)&cfg.ctlSeriesId[0], 8, _o_ctlSeries, 16)
+        ){
+            fprintf(stderr, "CTL series ID shall contain 16 hexadecimal digits\n");
+            return -1;
+        }
+    }
     
     e = FitSec_New(&cfg, "1");
     cfg.cbOnEvent = _onEvent;
@@ -195,7 +209,7 @@ int main(int argc, char** argv)
         if(_storage){
             cfg.storeTrustInformation = 1;
         }
-        FitSec_RequestTrustInfo(e, _curTime+1);
+        FitSec_RequestTrustInfo(e, _curTime+1, NULL);
     }
     FitSec_Free(e);
     FSMessageInfo_Cleanup(); 

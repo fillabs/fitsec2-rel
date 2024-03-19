@@ -25,7 +25,7 @@ by simple request to the author.
 #include "cstr.h"
 #include "cmem.h"
 #include "clog.h"
-#include "../fitsec_pki.h"
+#include "fitsec_pki.h"
 #include "fitsec.h"
 #include "fitsec_error.h"
 #include "fitsec_time.h"
@@ -69,7 +69,7 @@ static FitSecPkiConfig pki_cfg = {
         FS_NISTP256, &_priv_key[0]
     },
     0, // no repetition
-    DEFAULT_REQ_STORAGE_DURATION
+    DEFAULT_REQ_STORAGE_DURATION * 2
 };
 
 static time_t _curTime  = 0;
@@ -186,7 +186,7 @@ static bool _onEvent(FitSec* e, void* user, FSEventId event, const FSEventParam*
     }
 
     if(event == FSEvent_CertStatus){
-        FSHashedId8 digest = FitSec_CertificateDigest(params->certStateChange.certificate);
+        FSHashedId8 digest = FSCertificate_Digest(params->certStateChange.certificate);
         fprintf(stderr, "["cPrefixUint64"X]: %s=>%s\n", cint64_hton(digest), 
                                                        _CERT_STATE_NAME[params->certStateChange.from&3],_CERT_STATE_NAME[params->certStateChange.to&3]);
         
@@ -196,7 +196,7 @@ static bool _onEvent(FitSec* e, void* user, FSEventId event, const FSEventParam*
                 dir = "invalid/";
             }
             size_t len;
-            const char * d = FitSec_CertificateBuffer(params->certStateChange.certificate, &len);
+            const char * d = FSCertificate_Buffer(params->certStateChange.certificate, &len);
             if(d){
                 char * end = cstrend(_o_out);
                 sprintf(end, "/%s"cPrefixUint64"X.oer", dir,cint64_hton(digest));
@@ -273,12 +273,12 @@ int main(int argc, char** argv)
     if (COPT_ERC(argc)) {
         coptions_help(stdout, argv[0], 0, options, "commands, certificates or CRL/CTL files or HTTP(S) URLs\n"
             "Commands:\n"
-            "  dc <url> - set DC URL for following operations\n"
-            "  enroll   - Run enrolment procedure\n"
-            "  auth     - Run authorization procedure\n"
-            "  req      - Update CRL/CTL for all installed Root CA certs\n"
-            "  <path>   - load certificates or trust information from path (recursively)\n"
-            "  <URL>    - load trust information from given URL"
+            "  dc <url>   - set DC URL for following operations\n"
+            "  enrol[:EA] - Run enrolment procedure\n"
+            "  auth[:AA]  - Run authorization procedure\n"
+            "  req        - Update CRL/CTL for all installed Root CA certs\n"
+            "  <path>     - load certificates or trust information from path (recursively)\n"
+            "  <URL>      - load trust information from given URL"
         );
         return -1;
     }
@@ -392,13 +392,17 @@ int main(int argc, char** argv)
             force = _o_force;
         }else{
             size_t rc = 0;
-            if(cstrequal("enrol", argv[i])){
+            if(cstrnequal("enrol", argv[i], 5)){
+                const char * ea = argv[i]+5;
+                ec_params.ca.name = (*ea == ':') ? ea + 1 : NULL;
                 rc = FitSecPki_PrepareECRequest(pki, &ec_params, &m);
                 if(rc == 0){
                     fprintf(stderr, "Enrollment error: %s\n", FitSec_ErrorMessage(m.status));
                     continue;
                 }
-            }else if(cstrequal("auth", argv[i])){
+            }else if(cstrnequal("auth", argv[i], 4)){
+                const char * ca = argv[i]+4;
+                ec_params.ca.name = (*ca == ':') ? ca + 1 : NULL;
                 rc = FitSecPki_PrepareATRequest(pki, &at_params, &m);
                 if(rc == 0){
                     fprintf(stderr, "Authorization error: %s\n", FitSec_ErrorMessage(m.status));

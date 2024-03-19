@@ -4,6 +4,9 @@ BUILDROOT      = $(PROJECTROOT)/build
 ifeq (,$(FITSEC2))
   FITSEC2 = ..
 endif
+ifeq (,$(FSPKI))
+  FSPKI = ..
+endif
 
 ifeq (,$(TEST_BIN))
 
@@ -66,7 +69,7 @@ PROJECT        = fitsec_tests
 DEBUG          = yes
 bins           = $(TEST_BIN)
 sources       := $(TEST_BIN).c load_certs.c utils.c
-includes      += . $(FITSEC2) $(PROJECTROOT)/fscrypt
+includes      += . $(FITSEC2) $(FSPKI) $(PROJECTROOT)/fscrypt
 packages      += openssl cshared
 deps           = $(outdir)/libfitsec2.a $(outdir)/libfspki.a
 libs           = $(outdir)/libfspki.a $(outdir)/libfitsec2.a -Wl,--whole-archive $(outdir)/libfscrypt.a -Wl,--no-whole-archive -lm -lpthread
@@ -75,7 +78,7 @@ ifeq (test_pcap, $(TEST_BIN))
  packages     += pcap
 endif
 
-ifneq (,$(strip $(findstring $(TEST_BIN), test_ctlcrl test_pki)))
+ifneq (,$(strip $(findstring $(TEST_BIN), test_ctlcrl test_pki test_auth)))
  packages     += curl
 endif
 

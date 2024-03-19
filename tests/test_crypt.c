@@ -635,7 +635,7 @@ int main(int argc, char** argv)
                 }
 
                 printf("%d: Pub key calc [%s]:", i, curve_names[curve]);
-                if(!FSKey_ExportPublic(e, pub.curve, k, &pub)){
+                if(!FSKey_ExportPublic(e, k, &pub)){
                     printf("\tkey calculation failed\n");
                 }else{
                     if(cmemcmp(_sign_vectors[i].pub_x, pub.point.x, fsize)){
@@ -731,7 +731,7 @@ int main(int argc, char** argv)
 
         printf("%d: Check Eph key:", i);
         FSPrivateKey* eph = FSKey_ImportPrivate(e, FS_NISTP256, v->v, 32);
-        FSKey_CalculatePublic(e, eph, &pub);
+        FSKey_ExportPublic(e, eph, &pub);
         if (memcmp(pub.point.x, v->Vx, 32)) {
             printf("\tX coordinate mismatch;\n");
             ret++;
@@ -744,7 +744,7 @@ int main(int argc, char** argv)
 
         printf("%d: Check Receiver key:", i);
         FSPrivateKey* rcv = FSKey_ImportPrivate(e, FS_NISTP256, v->r, 32);
-        FSKey_CalculatePublic(e, rcv, &pub);
+        FSKey_ExportPublic(e, rcv, &pub);
         if (memcmp(pub.point.x, v->Rx, 32)) {
             printf("\tX coordinate mismatch;\n");
             ret++;

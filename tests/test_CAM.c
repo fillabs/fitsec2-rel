@@ -237,7 +237,7 @@ static void test_CAM(FitSec * e1, FitSec * e2) {
         m->sign.signerType = FS_SI_AUTO;
 
         if (7 == (i & 7)) {
-            FSHashedId8 id = FitSec_ChangeId(e1, FITSEC_AID_ANY, m->generationTime, (const FSLocation*)&m->position);
+            FSHashedId8 id = FitSec_ChangeId(e1, FITSEC_AID_ANY);
             fprintf(stderr, "%-2s CHID :%016"PRIX64"\n", FitSec_Name(e1), id);
         }
 
@@ -266,7 +266,7 @@ static bool _onSigned(FitSec* e, void* user, FSEventId event, const FSEventParam
         fprintf(stderr, "%-2s SEND %s:\t ERROR: 0x%08X %s\n", FitSec_Name(e), __FUNCTION__, ms->status, FitSec_ErrorMessage(ms->status));
         return false;
     }
-    fprintf(stderr, "%-2s SEND %s:\t OK %016"PRIX64" %s \n", FitSec_Name(e), __FUNCTION__, FitSec_CertificateDigest(ms->sign.cert), _signer_types[ms->sign.signerType]);
+    fprintf(stderr, "%-2s SEND %s:\t OK %016"PRIX64" %s \n", FitSec_Name(e), __FUNCTION__, FSCertificate_Digest(ms->sign.cert), _signer_types[ms->sign.signerType]);
     
     if (out) {
         fwrite(ms->message, 1, ms->messageSize, out);
@@ -301,6 +301,6 @@ static bool _onValidated(FitSec* e, void* user, FSEventId event, const FSEventPa
         fprintf(stderr, "%-2s VALD %s:\t ERR 0x%08X %s\n", FitSec_Name(e), __FUNCTION__, m->status, FitSec_ErrorMessage(m->status));
         return false;
     }
-    fprintf(stderr, "%-2s VALD %s:\t OK %016"PRIX64" %s \n", FitSec_Name(e), __FUNCTION__, FitSec_CertificateDigest(m->sign.cert), _signer_types[m->sign.signerType]);
+    fprintf(stderr, "%-2s VALD %s:\t OK %016"PRIX64" %s \n", FitSec_Name(e), __FUNCTION__, FSCertificate_Digest(m->sign.cert), _signer_types[m->sign.signerType]);
     return true;
 }

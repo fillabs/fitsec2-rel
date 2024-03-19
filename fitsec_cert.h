@@ -53,6 +53,24 @@ extern "C" {
     }FSCertificateState;
 
     FITSEC_EXPORT
+    FSHashedId8           FSCertificate_Digest(const FSCertificate * c);
+  
+    FITSEC_EXPORT
+    uint32_t              FSCertificate_ExpiryTime(const FSCertificate * c);
+
+    FITSEC_EXPORT
+    const FSCertificate * FSCertificate_Issuer(const FSCertificate * c);
+
+    FITSEC_EXPORT
+    const char *          FSCertificate_Name(const FSCertificate * c);
+
+    FITSEC_EXPORT
+    const char *          FSCertificate_SetName(const FSCertificate * c, const char * name);
+
+    FITSEC_EXPORT
+    const char *          FSCertificate_Buffer(const FSCertificate * c, size_t * len);
+
+    FITSEC_EXPORT
     uint32_t           FSCertificate_GetState(const FSCertificate* c);
     FITSEC_EXPORT
     void               FSCertificate_SetState(FSCertificate* c, uint32_t set, uint32_t remove);

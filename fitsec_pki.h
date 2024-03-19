@@ -100,6 +100,9 @@ typedef struct FSCertificateParams
     FSItsAidSsp         appPermissions[16];
     FSItsAidSsp         issuePermissions[16];
 
+    struct {
+        const char    * name;
+    }ca;
 }FSCertificateParams;
 
 FSPKI_EXPORT size_t FitSecPki_PrepareATRequest(FitSecPki* pki, const FSCertificateParams* params, FSMessageInfo * m);

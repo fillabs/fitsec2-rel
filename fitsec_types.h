@@ -27,6 +27,19 @@
 # endif
 #endif
 
+#ifndef CUNUSED
+#if defined(__GNUC__)
+#define CUNUSED __attribute__((unused))
+#define CDEPRECATED __attribute__((deprecated))
+#elif defined (_MSC_VER)
+#define CUNUSED
+#define CDEPRECATED __declspec ((deprecated))
+#else
+#define CUNUSED
+#define CDEPRECATED
+#endif
+#endif //CUNUSED
+
 #ifdef __cplusplus
 extern "C" {
 #endif

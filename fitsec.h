@@ -161,6 +161,8 @@ extern "C" {
         unsigned int                ctlCheckPeriod;        // check for CTL every XX seconds (set to at least 24 hours)
         unsigned int                crlCheckPeriod;        // check for CRL every XX seconds (set to at least 24 hours)
         int                         storeTrustInformation; // call user callback funtion to store received trust information and AA certs
+        uint8_t                     ctlSeriesId[8];        // [SCSM only] CTL series to be used.
+        int                         ctlQuorum;             // [SCMS only] CTL quorum (2 by default)
     } FitSecConfig;
     #define FS_DEFAULT_PROTOCOL_VERSION 3
     #define FS_DEFAULT_RECEIVED_LIFETIME 2
@@ -304,38 +306,45 @@ extern "C" {
 
     /** Return certificate digest
         @return the HashedId8 of the certificate
+        @deprected Use the @ref FSCertificate_Digest instead
     */
-    FITSEC_EXPORT FSHashedId8           FitSec_CertificateDigest(const FSCertificate *);
+    FITSEC_EXPORT CDEPRECATED FSHashedId8 FitSec_CertificateDigest(const FSCertificate *) ;
 
     /** Return the expiration ITS time of the certificate
         @return the expiration time (seconds since ITS epoche) of the certificate
+        @deprected Use the @ref FSCertificate_ExpiryTime instead
     */
-    FITSEC_EXPORT uint32_t              FitSec_CertificateExpiry(const FSCertificate *);
+    FITSEC_EXPORT CDEPRECATED uint32_t FitSec_CertificateExpiry(const FSCertificate *);
 
     /** Return the issuer of the certificate (or itself if self-signed)
         @return the certificate issuer
+        @deprected Use the @ref FSCertificate_Issuer instead
     */
-    FITSEC_EXPORT const FSCertificate * FitSec_CertificateIssuer(const FSCertificate *);
+    FITSEC_EXPORT CDEPRECATED const FSCertificate * FitSec_CertificateIssuer(const FSCertificate *);
 
     /** Return the subject name of the certificate (if any) or NULL if not specified
         @return the certificate name
+        @deprected Use the @ref FSCertificate_Name instead
     */
-    FITSEC_EXPORT const char *          FitSec_CertificateName(const FSCertificate *);
+    FITSEC_EXPORT CDEPRECATED const char * FitSec_CertificateName(const FSCertificate *);
 
     /** Sets the subject name of the certificate for debuging purposes
         @return the new certificate name
+        @deprected Use the @ref FSCertificate_SetName instead
     */
-    FITSEC_EXPORT const char *          FitSec_SetCertificateName(const FSCertificate *, const char * name);
+    FITSEC_EXPORT CDEPRECATED const char * FitSec_SetCertificateName(const FSCertificate *, const char * name);
 
     /** Return the state of the certificate: FS_CERT_TRUSED, FS_CERT_INVALID or 0 if unknown
         @return the certificate state
+        @deprected Use the @ref FSCertificate_GetState instead
     */
-    FITSEC_EXPORT uint32_t              FitSec_CertificateState(const FSCertificate* c);
+    FITSEC_EXPORT CDEPRECATED uint32_t FitSec_CertificateState(const FSCertificate* c);
 
     /** Return OER representation of the certificate (if was read from OER)
      * @return pointer to OER buffer or NULL if not (yet) read from buffer
+        @deprected Use the @ref FSCertificate_Buffer instead
     */
-    FITSEC_EXPORT const char * FitSec_CertificateBuffer(const FSCertificate * c, size_t * len);
+    FITSEC_EXPORT CDEPRECATED const char * FitSec_CertificateBuffer(const FSCertificate * c, size_t * len);
 
     /** Find a local end entity certificate conformed to request conditions.
      *   @param e        pointer to the FitSec engine
@@ -350,6 +359,7 @@ extern "C" {
 
     /** Find an authority certificate, which is able to issue the end entity certificate, conformed to request conditions.
      *   @param e         pointer to the FitSec engine
+     *   @param name_pattern The filename-like pattern to match the CA name. Use NULL to skip name check
      *   @param app       the application ID and SSP defining required CA application permission
      *                    For ETSI model request for EA shall contain at least 623:0x0104 and for AA - 623:0x0110 
      *   @param assp      the application ID and SSP defining EE application permissions.
@@ -363,6 +373,7 @@ extern "C" {
      *   @param error     will be set to nonzero value if error occured.
      */
     FITSEC_EXPORT FSCertificate *  FitSec_SelectCACertificate(  FitSec * e, 
+                                                                const char * name_pattern,
                                                                 const FSItsAidSsp * app,  
                                                                 const FSItsAidSsp * assp, const FSItsAidSsp * issp,
                                                                 const FSGeoRegion * region,
@@ -381,19 +392,16 @@ extern "C" {
     FITSEC_EXPORT FSCertificate * FitSec_Select(FitSec * e, FSItsAid aid, FSHashedId8 cert_id);
 
     /** Request for Pseudonym change.
-     *  Change the pseudonym for any suitable pseudonym or enqueue this procedure if the application is locked now.
+     *  The request for the seudonym change will be registered.
+     *  The actual ID change will be made with the next outgoing signed message if the ID change is not locked or
+     *    will be postponed until unlock.
      *  The OnEvent callback will be called twice with following events:
-     *     * FSEventChangeId  - Before the change procedure;
-     *     * FSEventIdChanged - After the procedure. 
-     *                          This can be called later if ID change is currently locked for the application
+     *     * FSEventChangeId  - Before the change procedure, during this function execution;
+     *     * FSEventIdChanged - After the procedure. This event will be issued later when ID change is actually made
      *   @param e        Pointer to the FitSec engine
-     *   @param aid      The requested certificate must permit this application.
-     *                   Use FITSEC_AID_ANY to change ID for all application.
-     *   @param curTime  The current ITS timestamp.
-     *   @param position The current position.
-     * 
+     *   @param aid      The focused application. Use FITSEC_AID_ANY to change ID for all application. 
      */
-    FITSEC_EXPORT FSHashedId8 FitSec_ChangeId(FitSec* e, FSItsAid aid, FSTime64 curTime, const FSLocation * const position);
+    FITSEC_EXPORT bool FitSec_ChangeId(FitSec* e, FSItsAid aid);
 
     /** Lock/unlock pseudonym change procedure
      *   
@@ -621,20 +629,6 @@ extern "C" {
      *  messageSize    | in/out: the maximum size of the output buffer.
      */
     FITSEC_EXPORT size_t FitSec_FinalizeUnsecuredMessage(FitSec * e, FSMessageInfo* m);
-
-    /** Read Unsecured ITS message envelop
-     *  @param e       [In]      The engine
-     *  @param m       [In/Out]  Message Info structure
-     *  @return        message size or 0 for error
-     *
-     *  Description of fields in FSMessageInfo:
-     *  ---------------|--------------------------------------------------------------
-     *  message        | in: the pointer to the message buffer.
-     *  messageSize    | in: the size of the message buffer.
-     *  payload        | out: the pointer to the message buffer where payload is started.
-     *  payloadSize    | out: the size of the payload.
-     */
-    FITSEC_EXPORT size_t FitSec_ReadUnsecuredMessage(FitSec * e, FSMessageInfo* m);
     
     /** Prepare Encrypted ITS message envelop
      *  @param e       [In]      The engine
@@ -652,7 +646,15 @@ extern "C" {
      */
     FITSEC_EXPORT size_t FitSec_PrepareEncryptedMessage(FitSec * e, FSMessageInfo* m);
 
-
+    /** Add certificate as an encrypted message receipient.
+     *  @param e           [In]      The engine
+     *  @param m           [In/Out]  Message Info structure
+     *  @param receipient  [In]      The certificate digest.
+     *  @return            message size or 0 for error
+     *
+       Target certificate shall have encryption public key.
+       Up to 8 certificate encryption targets can be set for the message.
+     */
     FITSEC_EXPORT size_t FitSec_AddEncryptedMessageCertificateReceipient(FitSec * e, FSMessageInfo* m, FSHashedId8 receipient);
     
     /** Install pre-shared key in the DB
