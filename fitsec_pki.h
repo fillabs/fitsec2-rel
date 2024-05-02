@@ -50,16 +50,19 @@ extern "C" {
             const uint8_t * priv;
         }station;
         bool                repetition;
+        bool                disablePrivacy;
         uint32_t            reqStorageDuration; // seconds to store sent requests
     } FitSecPkiConfig;
+    #define FS_PKI_DEFAULT_REQ_STORAGE_DURATION 20
 
     typedef struct FitSecPki {
         FitSec * e;
-        const FitSecPkiConfig * cfg;
+        FitSecPkiConfig cfg;
     }FitSecPki;
 
 FSPKI_EXPORT FitSecPki * FitSecPki_New(FitSec * e, const FitSecPkiConfig * cfg);
 FSPKI_EXPORT void        FitSecPki_Free(FitSecPki * const pki);
+FSPKI_EXPORT void        FitSecPki_Clean(FitSecPki * const _pki);
 
 /** Load PKI message from the given buffer.
  *  Each PKI message is an IEEE1609Dot2Data signed message containing PKI related payload.

@@ -55,6 +55,12 @@ extern "C" {
 	}
     FSHashedId3 toHashedId3(const uint8_t * buf);
 
+    #define coer_write_hashedid8(D,PTR,END,ERR) do { \
+        int __err = ERR; \
+        FSHashedId8 __dg = D; \
+        cbuf_write(&__dg, 8, (char**)(PTR), (const char*)(END), &__err); \
+    }while(0)
+
     typedef uint64_t FSTime64;
     typedef uint32_t FSTime32;
     #define _FSTime32from64(t) ((uint32_t)(t/1000000))

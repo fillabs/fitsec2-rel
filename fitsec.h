@@ -83,40 +83,52 @@ extern "C" {
     };
 
     typedef enum  {
-        FSEvent_ChangeId,      // Pseudonym is about to be changed.
-        FSEvent_IdChanged,     // Pseudonym was changed.
-                               // event parameter is a pointer to the new FSCertificate
-        FSEvent_Signed,        // In async mode only. Called when message is signed
-        FSEvent_Validated,     // In async mode only. Called when message is validated
+        FSEvent_ChangeId,        //< Called when AT certificate is about to be changed for one or more application
+        FSEvent_IdChanged,       //< Called when pseudonym was changed for one or more application
+        FSEvent_Signed,          //< In async mode only. Called when message has been signed
+        FSEvent_Validated,       //< In async mode only. Called when message signature has been verified
         
-        FSEvent_Encrypted,     // In async mode only. Called when message is encrypted
-        FSEvent_Decrypted,     // In async mode only. Called when message is decrypted
+        FSEvent_Encrypted,       //< In async mode only. Called when message has been encrypted
+        FSEvent_Decrypted,       //< In async mode only. Called when message has been decrypted
 
-        FSEvent_CertStatus,    // Called when the status of some certificate is changed (revoked, expired, trusted, etc.) 
+        FSEvent_CertStatus,      //< Called when the status of some certificate is changed (revoked, expired, trusted, etc.) 
 
-        FSEvent_HttpGetRequest,
-        FSEvent_HttpPostRequest,
-        FSEvent_StoreData,
+        FSEvent_HttpGetRequest,  //< Called when the library is looking for some external information using HTTP GET request
+        FSEvent_HttpPostRequest, //< Called when the library is looking for some external information using HTTP POST request
+                                 //< It is up to application to download the actual data and to give it back to the library
+                                 //< using @ref FitSec_ApplyTrustInformation function call.
+        FSEvent_StoreData,       //< Called when some data shall be stored for future use. It can be certificate, CTL or CRL.
+                                 //< Stored data shall be given back to the library on the next initialization using
+                                 //< @ref FitSec_InstallCertificate or @ref FitSec_ApplyTrustInformation.
     } FSEventId;
 
     typedef union FSEventParam FSEventParam;
     typedef bool (FitSec_Event_Fn)(FitSec * e, void * user, FSEventId event, const FSEventParam * params);
 
     typedef struct FitSecAppProfile {
-        FSItsAidSsp aid;            // ITS application ID and ssp length and value meaning mask in sspData field;
-                                    // 0 - ssp bit is permission bitfield
-                                    // 1 - ssp bit is a part of value (version, ID or whatever)
+        FSItsAidSsp aid;            //< ITS application ID and ssp length and value meaning mask in sspData field;
+                                    //<  - 0 - ssp bit is permission bitfield
+                                    //<  - 1 - ssp bit is a part of value (version, ID or whatever)
 
-        FSPayloadType payloadType;  // Default payload type
+        FSPayloadType payloadType;  //< Default payload type
 
-        unsigned int fields;        // Flags
+        unsigned int fields;        //< Flags: The bitmask of FitSecAppProfileFlags values
 
-        int      certPeriod;	    // period in milliseconds when certificate shall be sent within application messages
-                                    // set to -1 to do not send certificates at all,
-                                    // set to  0 to send certificates in each message (default)
-                                    // set to 1000 (100 msec) to send each second (default for CAM).
+        int      certPeriod;	    //< period in milliseconds when a signing certificate shall be sent within application messages
+                                    //<  - set to -1 to do not send certificates at all,
+                                    //<  - set to  0 to send certificates in each message (default)
+                                    //<  - set to 1000 (100 msec) to send each second (default for CAM).
 
-        int      certChangePeriod;  // The certificate change period in seconds
+        int      certChangePeriod;  //< The certificate change period in seconds.
+                                    //<  - set to 0 to disable AT change.
+        unsigned int timeTolerancePast;   //< Time tolerance in the past in nanoseconds.
+                                          //< Accept only messages with generationTime >= currentTime-timeTolerancePast.
+                                          //<  - set to 0 to disable verification
+                                          //< Value corresponds to pSecMessagePastToleranceTime in C2CCC Basic Profile
+        unsigned int timeToleranceFuture; //< Time tolerance in the past in nanoseconds.
+                                          //< Accept only messages with generationTime <= currentTime-timeToleranceFuture.
+                                          //<  - set to 0 to disable verification
+                                          //< Value corresponds to pSecMessageFutureToleranceTime in C2CCC Basic Profile
         //TODO: to be continued: change pseudonym strategy, etc.
     } FitSecAppProfile;
 
@@ -137,7 +149,8 @@ extern "C" {
     {
         unsigned int                version;          // default protocol version (3)
         unsigned int                flags;            // see FitSecEngineFlags
-        const FitSecAppProfile    * appProfiles;      // application Profiles
+        const FitSecAppProfile    * appProfiles;      // application Profiles. Array of FitSecAppProfile structures.
+                                                      // The last item SHALL have aid == FITSEC_AID_ANY and contain values by default.
         const char                * hashEngine;       // hash engine: "openssl", "atlk", NULL by default
         const char                * signEngine;       // signing engine: "openssl", "atlk", NULL by default
         const char                * verifyEngine;     // signature verification engine: "openssl", "atlk", NULL by default
@@ -802,7 +815,7 @@ extern "C" {
     /** Validate signed ITS message.
      *  @param e       [In]      The engine
      *  @param info    [In/Out]  Message information received from FitSec_ParseSignedMessage
-     *  @return        the actual size of the message or 0 in case of error
+     *  @return        true if message is valid and false elsewise.
      *
      *  Description of fields in FSMessageInfo:
      *  ---------------|--------------------------------------------
