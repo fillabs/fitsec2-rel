@@ -1,7 +1,7 @@
-export PROJECTROOT    ?= .
-export BUILDROOT      ?= $(PROJECTROOT)/build
-export CSHAREDDIR     ?= $(PROJECTROOT)/cshared
-export FSCRYPTDIR     ?= $(PROJECTROOT)/fscrypt
+PROJECTROOT    ?= .
+#BUILDROOT      ?= $(PROJECTROOT)/build
+#CSHAREDDIR     ?= $(PROJECTROOT)/cshared
+#FSCRYPTDIR     ?= $(PROJECTROOT)/fscrypt
 
 all: install
 clean:
@@ -13,15 +13,15 @@ ifeq (.,$(PROJECTROOT))
 endif
 
 tests: install FORCE
-	make -C $@ all
+	make -C $@ all PROJECTROOT=..
 
 install: cshared fscrypt FORCE
-	make -C lib all
+	make -C lib all PROJECTROOT=$(PROJECTROOT)/..
 
 cshared: FORCE
-	make -C $@ all
+	make -C $@ all PROJECTROOT=$(PROJECTROOT)/..
 
 fscrypt: FORCE
-	make -C $@ all
+	make -C $@ all PROJECTROOT=$(PROJECTROOT)/..
 
 FORCE:
