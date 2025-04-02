@@ -33,7 +33,7 @@
 #define CDEPRECATED __attribute__((deprecated))
 #elif defined (_MSC_VER)
 #define CUNUSED
-#define CDEPRECATED __declspec ((deprecated))
+#define CDEPRECATED __declspec (deprecated)
 #else
 #define CUNUSED
 #define CDEPRECATED
