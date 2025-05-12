@@ -11,28 +11,27 @@ The library implements following specifications:
 - [ETSI TS 103 601 v2.2.1](https://www.etsi.org/deliver/etsi_ts/103600_103699/103601/01.01.01_60/ts_103601v010101p.pdf) - The ETSI ITS security extensions.
 - [ETSI TS 103 759 v2.1.1](https://www.etsi.org/deliver/etsi_ts/103700_103799/103759/02.01.01_60/ts_103759v020101p.pdf) - The misbehaviour reporting protocol (the support is ongoing).
 
-The library supports the following:
-- Basic library features:
-  - Designed for minimum memory and CPU consumption.
-  - Plugin interface for software cryptographic libraries and HSMs.
-  - Synchronous and asynchronous message processing.
+Basic library features:
+- Designed for minimum memory and CPU consumption.
+- Plugin interface for software cryptographic libraries and HSMs.
+- Synchronous and asynchronous message processing.
   
-- Secured message handling features:
-  - Encoding and decoding of ITS secured messages, including all extensions, as described in ETSI TS 103 097 v2.1.1.
-  - Signature generation and verification.
-  - Message validation, according to signing certificate restrictions.
-  - Peer-2-peer certificate distribution.
+Secured message handling features:
+- Encoding and decoding of ITS secured messages, including all extensions, as described in ETSI TS 103 097 v2.1.1.
+- Signature generation and verification.
+- Message validation, according to signing certificate restrictions.
+- Peer-2-peer certificate distribution.
    
-- PKI support:
-  - Multiple root, enrolment and authorization certificate authorities.
-  - Independent EC and AT certificate pools for each ITS application.
-  - Creation and handling of certificate (EC or AT) requests.
-  - Automatic EE certificate selection for outgoing messages.
-  - Certificate revocation lists (CRL).
-  - Certificates trust lists (CTL and ECTL).
-  - Explicit and implicit certificates support.
-  - Peer-2-peer CRL/CTL requests.
-  - Certificate requests repetition.
+PKI features:
+- Multiple root, enrolment and authorization certificate authorities.
+- Independent EC and AT certificate pools for each ITS application.
+- Creation and handling of certificate (EC or AT) requests.
+- Automatic EE certificate selection for outgoing messages.
+- Certificate revocation lists (CRL).
+- Certificates trust lists (CTL and ECTL).
+- Explicit and implicit certificates support.
+- Peer-2-peer CRL/CTL requests.
+- Certificate requests repetition.
 
 The library can be used with any kind of communication protocol, particularly with the GeoNetworking as described in
 [ETSI EN 302 636-4-1](http://www.etsi.org/deliver/etsi_en/302600_302699/3026360401/01.02.01_60/en_3026360401v010201p.pdf).
