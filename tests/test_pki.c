@@ -87,9 +87,9 @@ static copt_t options [] = {
     { "h?", "help",          COPT_HELP,     NULL,            "Print this help page"},
     { "v",  "verbose",       COPT_BOOL,     &_o_verbose,     "be verbose"},
     { "C",  "config",        COPT_CFGFILE,  &cfgfile,        "Config file"         },
-    { "t",  "time",          COPT_STR,      &_curStrTime,    "The ISO representation of starting time" },
-    { "K",  "canonical-key", COPT_PATH,     &_canKeyPath,    "Canonical private key path" },
-    { "I",  "station-id",    COPT_PATH,     &_stationIdPath, "Station identifier path" },
+    { "t",  "time",          COPT_STR,      &_curStrTime,    "The ISO representation of starting time (YYY-MM-DD)" },
+    { "K",  "canonical-key", COPT_PATH,     &_canKeyPath,    "Path to canonical private key file. File extension is (.)" },
+    { "I",  "station-id",    COPT_PATH,     &_stationIdPath, "Path to station identifier file" },
 
     { "O",  "override",      COPT_STR,      &_o_u_path,      "Override hosts of all DC URLs" },
     { "f",  "force",         COPT_BOOL,     &_o_force,       "force all operations" },
@@ -272,13 +272,16 @@ int main(int argc, char** argv)
     argc = coptions(argc, argv, flags, options);
     if (COPT_ERC(argc)) {
         coptions_help(stdout, argv[0], 0, options, "commands, certificates or CRL/CTL files or HTTP(S) URLs\n"
-            "Commands:\n"
+            "<path>  : load certificates or trust information from path (recursively)\n"
+            "<URL>   : load trust information from given URL"
+            "commands:\n"
             "  dc <url>   - set DC URL for following operations\n"
             "  enrol[:EA] - Run enrolment procedure\n"
             "  auth[:AA]  - Run authorization procedure\n"
             "  req        - Update CRL/CTL for all installed Root CA certs\n"
-            "  <path>     - load certificates or trust information from path (recursively)\n"
-            "  <URL>      - load trust information from given URL"
+            "\n"
+            "The file name extension of the canonical key filerepresents curve: \n"
+            "               nist256(default) | nist384 | bpool384 | bpool256 | sm2\n"
         );
         return -1;
     }
@@ -333,7 +336,7 @@ int main(int argc, char** argv)
         uint8_t * e = (uint8_t *)cstrnload((char*)&station_id[0], sizeof(station_id), _stationIdPath);
         if(e - &station_id[0] != 16){
             if(errno) perror(_canKeyPath);
-            else      fprintf(stderr, "%s: station id file size mismatch\n", _stationIdPath);
+            else      fprintf(stderr, "%s: station id file size should be 16 bytes length\n", _stationIdPath);
             return -1;
         }
     }
@@ -357,8 +360,6 @@ int main(int argc, char** argv)
         .duration = 168,
         .durationType = dt_hours,
         .appPermissions = {
-//            {FITSEC_AID_CAM,      3, {.bits={1}}},
-//            {FITSEC_AID_DENM,     4, {.bits={1}}},
             {FITSEC_AID_CRT_REQ,  2, {.bits={0x01, {0xC0}}}},
             {0}
         }

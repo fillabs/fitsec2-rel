@@ -2,7 +2,7 @@
 #define _FITSEC_PKI_H_
 #include "fitsec.h"
 #include "fitsec_geometry.h"
-#include "fitsec_time.h"
+#include "citstime.h"
 
 #define FS_PKI_VERSION     1
 #define FS_PKI_VERSION_CTL 1
